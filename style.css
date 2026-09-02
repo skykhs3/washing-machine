@@ -1,0 +1,47 @@
+:root {
+  color-scheme: dark;
+  --bg: #2b2f36;
+  --panel: rgba(18, 21, 26, 0.88);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --text: #e6e9ee;
+  --muted: #9aa3ad;
+  --btn: #343941;
+  --btn-hover: #3e444d;
+  --btn-active: #5ff2c8;
+  --btn-active-text: #0b1a16;
+  --accent: #5ff2c8;
+  --radius: 10px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+  height: 100vh;
+  height: 100dvh;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
