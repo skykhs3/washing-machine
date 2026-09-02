@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#2b2f36">
+  <meta name="description" content="A drum washing machine you can just sit and watch. Soft-body laundry, water, and a full wash cycle, all in Canvas 2D.">
+  <title>Washing Machine</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <canvas id="scene" role="img" aria-label="A front-loading drum washing machine running a wash cycle" data-i18n-label="canvasLabel"></canvas>
+  <div id="live" class="sr-only" aria-live="polite"></div>
+
+  <div id="ui" class="ui">
+    <button id="handle" class="handle" type="button" data-i18n="controls">Controls</button>
+
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title" data-i18n="controls">Controls</span>
+        <button id="hidePanel" class="close" type="button" aria-label="Hide controls" data-i18n-label="hideControls">&times;</button>
+      </div>
+      <section class="group">
+        <div class="group-head">
+          <h2 data-i18n="laundry">Laundry</h2>
+          <span id="count" class="badge">0 / 20</span>
+        </div>
+        <div class="row types">
+          <button type="button" class="type" data-add="tshirt">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3 4 6l2 4 2-1v12h8V9l2 1 2-4-4-3a4 4 0 0 1-8 0z"/></svg>
+            <span data-i18n="tshirt">T-shirt</span>
+          </button>
+          <button type="button" class="type" data-add="sock">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h7v10l3 3a4 4 0 0 1-6 5l-5-5V2zm0 3v6l6 6a1.5 1.5 0 0 0 2-2l-4-4V5H9z"/></svg>
+            <span data-i18n="sock">Sock</span>
+          </button>
+          <button type="button" class="type" data-add="towel">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM7 5v14h10V5zm1 3h8v2H8zm0 4h8v2H8z"/></svg>
+            <span data-i18n="towel">Towel</span>
+          </button>
+          <button type="button" class="type" data-add="pants">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12v20h-4l-2-9-2 9H6zm2 2v4h8V4z"/></svg>
+            <span data-i18n="pants">Pants</span>
+          </button>
+        </div>
+        <div class="row">
+          <button type="button" id="addRandom" data-i18n="random">Random</button>
+          <button type="button" id="removeLast" data-i18n="remove">Remove</button>
+          <button type="button" id="clear" data-i18n="empty">Empty</button>
+        </div>
+      </section>
+
+      <section class="group">
+        <div class="group-head">
+          <div class="seg" role="group" aria-label="Mode" data-i18n-label="mode">
+            <button type="button" id="modeAuto" aria-pressed="true" data-i18n="auto">AUTO</button>
+            <button type="button" id="modeManual" aria-pressed="false" data-i18n="manual">MANUAL</button>
+          </div>
+          <button type="button" id="pause" aria-pressed="false" data-i18n="pause">Pause</button>
+        </div>
+        <label class="slider">
+          <span class="slider-label"><span data-i18n="rpm">RPM</span> <output id="rpmOut" for="rpm">0</output></span>
+          <input id="rpm" type="range" min="0" max="240" step="5" value="0" aria-valuetext="0 RPM">
+        </label>
+        <div class="row">
+          <button type="button" id="dir" aria-pressed="false" data-i18n="reverse">Reverse</button>
+          <button type="button" id="water" aria-pressed="false" data-i18n="water">Water</button>
+          <button type="button" id="skip" data-i18n="skip">Skip stage</button>
+        </div>
+        <div class="row sound">
+          <button type="button" id="sound" aria-pressed="true" aria-label="Sound" data-i18n-label="sound">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="wave" d="M16 8.5a4.5 4.5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="slash" d="M3.5 3.5l17 17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          </button>
+          <input id="volume" type="range" min="0" max="100" step="5" value="60" aria-label="Volume" data-i18n-label="volume">
+        </div>
+        <div class="row small">
+          <button type="button" id="lang" aria-label="Switch language" data-i18n-label="switchLang">한국어</button>
+          <button type="button" id="lowPower" aria-pressed="false" data-i18n="lowPower" data-i18n-title="lowPowerHint">Low graphics</button>
+          <a class="link" href="https://github.com/skykhs3/washing-machine" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
