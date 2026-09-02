@@ -3,6 +3,7 @@ import { World } from './physics/world.js';
 import { Drum } from './physics/drum.js';
 import { Motor } from './physics/motor.js';
 import { Water } from './physics/water.js';
+import { Cycle } from './cycle.js';
 import { Foam } from './render/foam.js';
 import { Viewport } from './render/viewport.js';
 import { Renderer } from './render/renderer.js';
@@ -19,6 +20,7 @@ const world = new World(CONFIG.physics, CONFIG.laundry);
 const drum = new Drum(CONFIG.physics);
 const motor = new Motor(CONFIG.motor);
 const water = new Water(CONFIG.water);
+const cycle = new Cycle(CONFIG.cycle);
 const foam = new Foam(CONFIG.foam.max);
 const renderer = new Renderer(vp, CONFIG);
 
@@ -29,8 +31,9 @@ for (const type of DEFAULT_LOAD) {
 }
 
 function simStep(dt) {
-  motor.setTargetRpm(45, CONFIG.motor.accelManual);
-  water.target = CONFIG.water.manualLevel;
+  cycle.update(dt);
+  motor.setTargetRpm(cycle.targetRpm(), cycle.accelFor(motor.rpm, CONFIG.motor));
+  water.target = cycle.targetLevel();
   motor.update(dt);
   drum.omega = motor.omega;
   water.update(dt, drum.omega);
@@ -38,8 +41,19 @@ function simStep(dt) {
 }
 
 function foamIntensity() {
-  if (!water.active) return 0;
-  return Math.abs(motor.rpm) > 5 ? 0.6 : 0.15;
+  return cycle.foamIntensity();
+}
+
+function hudInfo() {
+  return {
+    stageLabel: cycle.stage.label.toUpperCase(),
+    modeLabel: 'AUTO',
+    remaining: cycle.totalRemaining,
+    rpm: motor.rpm,
+    phaseIndex: cycle.phase,
+    phaseCount: cycle.phaseCount,
+    manual: false,
+  };
 }
 
 const stats = { fps: 0, frameMs: 0, physMs: 0, substeps: 1 };
@@ -65,8 +79,9 @@ function frame(now) {
   const t1 = performance.now();
 
   const intensity = foamIntensity();
+  const info = hudInfo();
   foam.update(frameDt, water, intensity, world.time);
-  renderer.draw({ world, drum, water, foam, time: world.time, frameDt, foamIntensity: intensity, debug: DEBUG, stats });
+  renderer.draw({ world, drum, water, foam, time: world.time, frameDt, foamIntensity: intensity, hud: info, debug: DEBUG, stats });
   const t2 = performance.now();
 
   stats.physMs = t1 - t0;
@@ -81,6 +96,6 @@ function frame(now) {
   }
 }
 
-if (DEBUG) window.__washer = { world, drum, motor, water, foam };
+if (DEBUG) window.__washer = { world, drum, motor, water, cycle, foam };
 
 requestAnimationFrame(frame);
