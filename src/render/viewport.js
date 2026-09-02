@@ -51,7 +51,7 @@ export class Viewport {
     if (this.sidebar) {
       const avail = w - SIDEBAR_WIDTH;
       this.R = Math.min(0.38 * h, 0.25 * w, 0.42 * avail);
-      this.cx = Math.min(w / 2, avail - this.R * 1.25);
+      this.cx = Math.min(w / 2, avail - this.R * 1.3);
       this.cy = 0.53 * h;
     } else {
       // Portrait, and phone landscape where the panel is a bottom sheet.
@@ -60,7 +60,9 @@ export class Viewport {
       // panel actually gives the drum the space back.
       const top = this.bandHeight;
       const avail = Math.max(80, h - this.reserved - top);
-      this.R = Math.min(0.42 * w, 0.4 * h, avail / 2.42);
+      // 0.4 w rather than half the width: the door handle reaches out to 1.235
+      // drum radii on the right and still has to fit on screen.
+      this.R = Math.min(0.4 * w, 0.4 * h, avail / 2.42);
       this.cx = w / 2;
       this.cy = top + avail / 2;
     }

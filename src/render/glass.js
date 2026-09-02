@@ -10,7 +10,7 @@ const TWO_PI = Math.PI * 2;
 export class GlassLayer {
   constructor(pal) {
     this.pal = pal;
-    this.pad = 1.22;
+    this.pad = 1.28;
     this.cache = document.createElement('canvas');
   }
 
@@ -131,7 +131,8 @@ export class GlassLayer {
     g.arc(0, 0, 1.075, 0, TWO_PI);
     g.stroke();
 
-    grip(g);
+    hinges(g, pal);
+    handle(g, pal);
   }
 
   draw(ctx, vp) {
@@ -158,43 +159,71 @@ function streak(g, cx, cy, rot, len, wide, alpha) {
   g.restore();
 }
 
-// A front loader hinges on the left and is opened from the right, but the grip
-// is not a lever you can see head on: the rim is undercut so fingers hook in
-// from behind it. From straight ahead all that shows is the shadow inside that
-// notch and the lit edge of the lip over it.
-function grip(g) {
-  g.save();
-  annulus(g, 1.072, 1.182);
-  g.clip();
+// A front loader hinges on the left and is opened from the right, so the grip
+// is a raised pad on that side with a finger pocket behind it, lit from the
+// upper left like the rest of the machine.
+function handle(g, pal) {
+  const x0 = 1.04;
+  const x1 = 1.235;
+  const half = 0.29;
 
-  // Inside the notch, deepest against the inner wall of the rim.
-  const pocket = g.createLinearGradient(1.06, 0, 1.185, 0);
-  pocket.addColorStop(0, 'rgba(0,0,0,0.66)');
-  pocket.addColorStop(0.5, 'rgba(0,0,0,0.34)');
-  pocket.addColorStop(1, 'rgba(0,0,0,0.05)');
+  g.save();
+  g.shadowColor = 'rgba(0,0,0,0.45)';
+  g.shadowBlur = 0.05;
+  g.shadowOffsetX = 0.012;
+  g.shadowOffsetY = 0.018;
+  roundRect(g, x0, -half, x1 - x0, half * 2, 0.075);
+  const pad = g.createLinearGradient(0, -half, 0, half);
+  pad.addColorStop(0, pal.chrome[1]);
+  pad.addColorStop(0.3, pal.chrome[2]);
+  pad.addColorStop(0.72, pal.chrome[3]);
+  pad.addColorStop(1, pal.chrome[4]);
+  g.fillStyle = pad;
+  g.fill();
+  g.restore();
+
+  g.strokeStyle = 'rgba(0,0,0,0.5)';
+  g.lineWidth = 0.008;
+  roundRect(g, x0, -half, x1 - x0, half * 2, 0.075);
+  g.stroke();
+
+  // Finger pocket: the hand goes in behind the grip, so it is in shadow and
+  // deepest against the inner wall.
+  roundRect(g, x0 + 0.028, -half + 0.06, 0.1, (half - 0.06) * 2, 0.042);
+  const pocket = g.createLinearGradient(x0, 0, x0 + 0.13, 0);
+  pocket.addColorStop(0, '#07090b');
+  pocket.addColorStop(1, '#2a2e34');
   g.fillStyle = pocket;
-  roundRect(g, 1.03, -0.3, 0.24, 0.6, 0.1);
   g.fill();
 
-  // The lip above the notch catches the light; the one below it is in shade.
+  // Top edge of the pad faces the light, bottom edge faces the floor.
   g.lineCap = 'round';
-  g.lineWidth = 0.018;
-  g.strokeStyle = 'rgba(255,255,255,0.26)';
+  g.lineWidth = 0.012;
+  g.strokeStyle = 'rgba(255,255,255,0.34)';
   g.beginPath();
-  g.arc(0, 0, 1.128, -0.3, -0.06);
+  g.moveTo(x0 + 0.07, -half + 0.008);
+  g.lineTo(x1 - 0.07, -half + 0.008);
   g.stroke();
   g.strokeStyle = 'rgba(0,0,0,0.3)';
   g.beginPath();
-  g.arc(0, 0, 1.128, 0.06, 0.3);
+  g.moveTo(x0 + 0.07, half - 0.008);
+  g.lineTo(x1 - 0.07, half - 0.008);
   g.stroke();
-  g.restore();
+}
 
-  // Where the undercut breaks the outer edge of the bezel.
-  g.lineWidth = 0.01;
-  g.strokeStyle = 'rgba(0,0,0,0.4)';
-  g.beginPath();
-  g.arc(0, 0, 1.178, -0.27, 0.27);
-  g.stroke();
+// Two hinge tabs on the left, so which side the door swings from is readable.
+function hinges(g, pal) {
+  for (const y of [-0.44, 0.44]) {
+    roundRect(g, -1.235, y - 0.085, 0.2, 0.17, 0.05);
+    const grad = g.createLinearGradient(0, y - 0.085, 0, y + 0.085);
+    grad.addColorStop(0, pal.chrome[2]);
+    grad.addColorStop(1, pal.chrome[4]);
+    g.fillStyle = grad;
+    g.fill();
+    g.strokeStyle = 'rgba(0,0,0,0.45)';
+    g.lineWidth = 0.007;
+    g.stroke();
+  }
 }
 
 function roundRect(g, x, y, w, h, r) {
