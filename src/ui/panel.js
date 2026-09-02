@@ -1,3 +1,5 @@
+import { t } from '../i18n.js';
+
 export function initPanel(root, app) {
   const els = {
     auto: root.querySelector('#modeAuto'),
@@ -8,6 +10,7 @@ export function initPanel(root, app) {
     dir: root.querySelector('#dir'),
     water: root.querySelector('#water'),
     skip: root.querySelector('#skip'),
+    lang: root.querySelector('#lang'),
   };
 
   els.auto.addEventListener('click', () => app.setMode('auto'));
@@ -17,6 +20,7 @@ export function initPanel(root, app) {
   els.dir.addEventListener('click', () => app.toggleDirection());
   els.water.addEventListener('click', () => app.toggleWater());
   els.skip.addEventListener('click', () => app.skipStage());
+  els.lang.addEventListener('click', () => app.toggleLang());
 
   let lastRpm = -1;
   return {
@@ -26,7 +30,7 @@ export function initPanel(root, app) {
       els.auto.setAttribute('aria-pressed', String(!manual));
       els.manual.setAttribute('aria-pressed', String(manual));
       els.pause.setAttribute('aria-pressed', String(s.paused));
-      els.pause.textContent = s.paused ? 'Resume' : 'Pause';
+      els.pause.textContent = t(s.lang, s.paused ? 'resume' : 'pause');
       els.water.setAttribute('aria-pressed', String(app.waterOn()));
       els.water.disabled = !manual;
       els.skip.disabled = manual;

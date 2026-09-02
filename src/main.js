@@ -7,6 +7,7 @@ import { Cycle } from './cycle.js';
 import { Foam } from './render/foam.js';
 import { Viewport } from './render/viewport.js';
 import { Renderer } from './render/renderer.js';
+import { detectLang, applyI18n, t, stageName } from './i18n.js';
 import { initPanelToggle } from './ui/panelToggle.js';
 import { initCanvasTap } from './ui/input.js';
 import { initLaundryPicker } from './ui/laundryPicker.js';
@@ -40,6 +41,7 @@ const state = {
     dir: 1,
     water: false,
   },
+  lang: detectLang(),
 };
 
 const spawnQueue = [];
@@ -127,6 +129,11 @@ const app = {
   skipStage() {
     if (state.mode === 'auto') cycle.skip();
   },
+  toggleLang() {
+    state.lang = state.lang === 'ko' ? 'en' : 'ko';
+    applyI18n(document, state.lang);
+    refreshUi();
+  },
 };
 
 const panel = initPanel(uiRoot, app);
@@ -140,6 +147,7 @@ initCanvasTap(canvas, vp, (p) => {
   const k = r > 0.6 ? 0.6 / r : 1;
   app.addLaundry(null, { x: p.x * k, y: p.y * k });
 });
+applyI18n(document, state.lang);
 
 for (const type of DEFAULT_LOAD) {
   app.addLaundry(type);
@@ -197,12 +205,12 @@ function foamIntensity() {
 function hudInfo() {
   const manual = state.mode === 'manual';
   return {
-    stageLabel: manual ? 'MANUAL' : cycle.stage.label.toUpperCase(),
-    modeLabel: manual ? '' : 'AUTO',
+    stageLabel: manual ? t(state.lang, 'manual') : stageName(state.lang, cycle.stage.label),
+    modeLabel: manual ? '' : t(state.lang, 'auto'),
     remaining: manual ? 0 : cycle.totalRemaining,
     rpm: motor.rpm,
     paused: state.paused,
-    pausedLabel: 'Paused',
+    pausedLabel: t(state.lang, 'paused'),
     phaseIndex: cycle.phase,
     phaseCount: cycle.phaseCount,
     manual,
