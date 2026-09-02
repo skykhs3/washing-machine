@@ -8,6 +8,7 @@ import { Foam } from './render/foam.js';
 import { Viewport } from './render/viewport.js';
 import { Renderer } from './render/renderer.js';
 import { detectLang, applyI18n, t, stageName } from './i18n.js';
+import { loadState, createSaver } from './ui/storage.js';
 import { initPanelToggle } from './ui/panelToggle.js';
 import { initCanvasTap } from './ui/input.js';
 import { initLaundryPicker } from './ui/laundryPicker.js';
@@ -21,6 +22,7 @@ const DEFAULT_LOAD = ['tshirt', 'sock', 'towel', 'pants', 'tshirt', 'sock'];
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
+const saved = loadState();
 const canvas = document.getElementById('scene');
 const uiRoot = document.getElementById('ui');
 
@@ -34,18 +36,28 @@ const foam = new Foam(CONFIG.foam.max);
 const renderer = new Renderer(vp, CONFIG);
 
 const state = {
-  mode: 'auto',
+  mode: saved?.mode === 'manual' ? 'manual' : 'auto',
   paused: false,
   manual: {
-    rpm: 45,
-    dir: 1,
-    water: false,
+    rpm: clamp(Math.round(saved?.manual?.rpm ?? 45), 0, motor.maxRpm),
+    dir: saved?.manual?.dir === -1 ? -1 : 1,
+    water: Boolean(saved?.manual?.water),
   },
-  lang: detectLang(),
+  lang: detectLang(saved?.lang),
 };
 
 const spawnQueue = [];
 let spawnTimer = 0;
+
+const save = createSaver(() => ({
+  laundry: [
+    ...world.liveBodies.map((b) => ({ type: b.type, colorIdx: b.colorIdx })),
+    ...spawnQueue.map((q) => ({ type: q.type, colorIdx: q.colorIdx })),
+  ],
+  mode: state.mode,
+  manual: state.manual,
+  lang: state.lang,
+}));
 
 const app = {
   state,
@@ -78,16 +90,19 @@ const app = {
       x: at?.x,
       y: at?.y,
     });
+    save();
     refreshUi();
   },
   removeLast() {
     if (spawnQueue.length) spawnQueue.pop();
     else world.removeLast();
+    save();
     refreshUi();
   },
   clearLaundry() {
     spawnQueue.length = 0;
     world.clear();
+    save();
     refreshUi();
   },
   setMode(mode) {
@@ -98,6 +113,7 @@ const app = {
       state.manual.water = water.target > 0;
     }
     state.mode = mode;
+    save();
     refreshUi();
   },
   togglePause() {
@@ -111,11 +127,13 @@ const app = {
   setManualRpm(rpm) {
     if (state.mode !== 'manual') this.setMode('manual');
     state.manual.rpm = clamp(Math.round(rpm), 0, motor.maxRpm);
+    save();
     panel.syncRpm(true);
   },
   setDirection(dir) {
     if (state.mode !== 'manual') this.setMode('manual');
     state.manual.dir = dir < 0 ? -1 : 1;
+    save();
     panel.syncRpm(true);
   },
   toggleDirection() {
@@ -124,6 +142,7 @@ const app = {
   toggleWater() {
     if (state.mode !== 'manual') this.setMode('manual');
     state.manual.water = !state.manual.water;
+    save();
     refreshUi();
   },
   skipStage() {
@@ -132,6 +151,7 @@ const app = {
   toggleLang() {
     state.lang = state.lang === 'ko' ? 'en' : 'ko';
     applyI18n(document, state.lang);
+    save();
     refreshUi();
   },
 };
@@ -149,8 +169,9 @@ initCanvasTap(canvas, vp, (p) => {
 });
 applyI18n(document, state.lang);
 
-for (const type of DEFAULT_LOAD) {
-  app.addLaundry(type);
+const initial = Array.isArray(saved?.laundry) ? saved.laundry : DEFAULT_LOAD.map((type) => ({ type }));
+for (const item of initial.slice(0, app.laundryMax())) {
+  app.addLaundry(item.type, undefined, item.colorIdx);
 }
 refreshUi();
 

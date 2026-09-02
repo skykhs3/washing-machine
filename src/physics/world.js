@@ -35,6 +35,10 @@ export class World {
     this.hash = new SpatialHash(phys.particleRadius * 2 + 0.01, 1.1, N);
   }
 
+  get liveBodies() {
+    return this.bodies.filter((b) => !b.removing);
+  }
+
   get liveCount() {
     let n = 0;
     for (const b of this.bodies) if (!b.removing) n++;
