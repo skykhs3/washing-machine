@@ -10,7 +10,7 @@ Soft-body laundry tumbles, soaks, and gets flung against the drum wall during sp
 ## Features
 
 - Full standard cotton course (about 57 minutes) that runs on its own: fill → wash → drain → short spin → two rinses with the same drain and short spin → 10 minute final spin → done, then repeats. The LED shows the time left in the course
-- Add T-shirts, socks, towels, and pants (up to 20). Tap the drum to drop a random piece where you tapped
+- Add T-shirts, socks, towels, and pants (up to 20)
 - Water level, tilted water surface, foam, and buoyancy for anything under the surface
 - Manual mode with an RPM slider, direction toggle, water toggle, and pause
 - Procedural sound driven by the physics: motor hum that follows RPM, a whine at spin speed, sloshing that grows with the swirl, thuds and splashes when laundry lands, fill and drain noise, and an end-of-cycle beep. Mute or set the volume from the panel
@@ -21,7 +21,8 @@ Soft-body laundry tumbles, soaks, and gets flung against the drum wall during sp
 | Control | What it does |
 |---|---|
 | Laundry buttons / Random | Queue one piece; pieces drop in one at a time |
-| Tap the drum | Drop a random piece at the tap point |
+| Tap the door grip | Works the latch: it clicks in and springs back |
+| Tap the console | Keypad beep |
 | Remove / Empty | Remove the last piece or clear the drum |
 | AUTO / MANUAL | Follow the wash program, or take over the motor |
 | RPM slider, Reverse, Water | Manual mode only (touching them switches to manual) |
@@ -55,6 +56,7 @@ Total: about 57 minutes, then the course starts again. The RPM shown is the simu
 - **Water** applies buoyancy and drag below a surface that tilts and swirls with the drum.
 - **Foam** is air entrained into a surfactant solution, so it needs both detergent and mechanical work. Entrainment is gated by the Froude number `Fr = w^2 R / g`: below the centrifuging threshold the load rides up the wall and drops back through the water, which drags air under, and above it everything is pinned to the wall and the plunging stops. With the drum scaled like a real 50 cm machine the threshold lands near 60 RPM, so foam peaks around 50 ~ 60 RPM and collapses above that. The amount is a volume integrated as `dV/dt = G(1 - V) - V/tau`, so it climbs to a plateau over tens of seconds instead of growing without bound, and sags once the agitation stops. Filling foams on its own because the incoming jet entrains air, each rinse starts with less surfactant so its foam is weaker and shorter lived, and draining thins the films so the head collapses as the level falls. Individual bubbles rise at a terminal velocity proportional to `r^2` along the *effective* gravity, which is gravity plus the centrifugal term, so at speed they migrate toward the drum axis rather than straight up; they coarsen as `dr/dt = k/r` (Ostwald ripening, mean radius growing like `sqrt(t)`) until the film ruptures. Above the surface the foam is given cohesion so it packs, rides up the wall, and shears off in clumps. The foam does not push back on the laundry or the water.
 - Drive it in MANUAL with the water on and sweep the RPM to see the non-monotonic response; `?debug` prints `Fr`, the tumbling gate, the generation rate, and the foam volume.
+- **The door** has hinges on the left and the grip on the right. The grip is drawn outside the cached glass layer because it animates: tapping it works the latch, which snaps in and springs back past rest, and fires a click. Tapping the console beeps. Neither changes any state; they are there because a machine you sit and watch should answer when you touch it.
 - **Sound** is synthesised with the Web Audio API from two oscillators and one noise buffer. The output is opened at load so that just watching has sound; browsers that withhold it until a gesture get a "tap for sound" prompt instead. On iOS the session type is raised to `playback`, because Web Audio otherwise sits in the `ambient` category and is silenced by the hardware mute switch, and the context is resumed from `interrupted` as well as `suspended` so it comes back after a screen lock or a call. Motor pitch and level follow RPM and load, slosh level follows the water swirl and how fast laundry moves through the water, and each landing after time in the air fires a one-shot thud (or a splash under the surface) scaled by approach speed and wetness.
 - **Rendering** uses one canvas. The machine body, back plate, glass, and LED display are cached offscreen. Fast rotation is drawn as a running average of sub-frame poses cross-faded into a pre-blurred back plate so the hole pattern never strobes.
 
@@ -77,8 +79,8 @@ src/main.js                loop, fixed-step accumulator, app state
 src/config.js              tuning constants, wash program, laundry types
 src/cycle.js               wash program state machine
 src/physics/               world (SoA particles), soft bodies, drum, water, motor, spatial hash
-src/render/                viewport, body, back plate, water, laundry, lifters, foam, glass, HUD
-src/ui/                    panel, laundry picker, panel toggle, tap input, localStorage
+src/render/                viewport, body, back plate, water, laundry, lifters, foam, glass, door handle, HUD
+src/ui/                    panel, laundry picker, panel toggle, canvas taps, localStorage
 ```
 
 ## Browser support

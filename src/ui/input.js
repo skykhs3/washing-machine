@@ -12,8 +12,12 @@ export function initCanvasTap(canvas, vp, onTap) {
     const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
     down = null;
     if (held > TAP_MS || moved > TAP_PX) return;
-    const p = vp.toDrum(e.clientX, e.clientY);
-    if (p.x * p.x + p.y * p.y < 1) onTap(p);
+    const rect = canvas.getBoundingClientRect();
+    // Both spaces: the console is laid out in pixels, the door in drum units.
+    onTap({
+      drum: vp.toDrum(e.clientX, e.clientY),
+      px: { x: e.clientX - rect.left, y: e.clientY - rect.top },
+    });
   });
   canvas.addEventListener('pointercancel', () => {
     down = null;

@@ -14,11 +14,13 @@ export function initPanel(root, app) {
     lowPower: root.querySelector('#lowPower'),
     sound: root.querySelector('#sound'),
     volume: root.querySelector('#volume'),
+    quickPause: root.querySelector('#quickPause'),
   };
 
   els.auto.addEventListener('click', () => app.setMode('auto'));
   els.manual.addEventListener('click', () => app.setMode('manual'));
   els.pause.addEventListener('click', () => app.togglePause());
+  els.quickPause.addEventListener('click', () => app.togglePause());
   els.rpm.addEventListener('input', () => app.setManualRpm(Number(els.rpm.value)));
   els.dir.addEventListener('click', () => app.toggleDirection());
   els.water.addEventListener('click', () => app.toggleWater());
@@ -37,6 +39,8 @@ export function initPanel(root, app) {
       els.manual.setAttribute('aria-pressed', String(manual));
       els.pause.setAttribute('aria-pressed', String(s.paused));
       els.pause.textContent = t(s.lang, s.paused ? 'resume' : 'pause');
+      els.quickPause.setAttribute('aria-pressed', String(s.paused));
+      els.quickPause.setAttribute('aria-label', t(s.lang, s.paused ? 'resume' : 'pause'));
       els.water.setAttribute('aria-pressed', String(app.waterOn()));
       els.water.disabled = !manual;
       els.skip.disabled = manual;

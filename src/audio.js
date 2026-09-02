@@ -281,6 +281,67 @@ export class AudioEngine {
     }
   }
 
+  // Door latch: a hard, very short broadband tick over the thud of the plastic
+  // body it is mounted in.
+  latch() {
+    if (!this.ctx || !this.master || !this.enabled) return;
+    const c = this.ctx;
+    const t = c.currentTime;
+
+    const src = c.createBufferSource();
+    src.buffer = this.noiseBuffer;
+    const f = c.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = 2600;
+    f.Q.value = 1.1;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.38, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+    src.connect(f);
+    f.connect(g);
+    g.connect(this.master);
+    src.start(t, Math.random() * (NOISE_SECONDS - 0.1), 0.1);
+
+    const osc = c.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(320, t);
+    osc.frequency.exponentialRampToValueAtTime(150, t + 0.06);
+    const og = c.createGain();
+    og.gain.setValueAtTime(0.2, t);
+    og.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    osc.connect(og);
+    og.connect(this.master);
+    osc.start(t);
+    osc.stop(t + 0.09);
+  }
+
+  // Membrane key on the console: short and soft, two partials under a lowpass.
+  keyBeep() {
+    if (!this.ctx || !this.master || !this.enabled) return;
+    const c = this.ctx;
+    const t = c.currentTime;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.13, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.085);
+    g.connect(this.master);
+    const f = c.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 3200;
+    f.connect(g);
+    for (const [freq, level] of [[2093, 1], [3136, 0.35]]) {
+      const osc = c.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const og = c.createGain();
+      og.gain.value = level;
+      osc.connect(og);
+      og.connect(f);
+      osc.start(t);
+      osc.stop(t + 0.1);
+    }
+  }
+
   beep(count = 1, freq = 1046, spacing = 0.18) {
     if (!this.ctx || !this.master || !this.enabled) return;
     const c = this.ctx;
