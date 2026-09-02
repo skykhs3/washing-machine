@@ -66,18 +66,19 @@ body {
   z-index: 3;
   display: none;
   align-items: center;
-  gap: 6px;
-  max-width: calc(100vw - 24px);
-  padding: 7px 14px;
+  gap: 9px;
+  max-width: calc(100vw - 20px);
+  padding: 12px 22px;
   border-radius: 999px;
   background: var(--panel);
-  border: 1px solid var(--panel-border);
+  border: 1px solid rgba(95, 242, 200, 0.35);
   color: var(--text);
-  font-size: 12px;
+  font-size: 16px;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.45);
   animation: hint-pulse 2.4s ease-in-out infinite;
 }
 
@@ -85,9 +86,18 @@ body {
 
 .sound-hint svg {
   flex: 0 0 auto;
-  width: 15px;
-  height: 15px;
-  fill: currentColor;
+  width: 20px;
+  height: 20px;
+  fill: var(--accent);
+}
+
+@media (max-width: 380px) {
+  .sound-hint {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .sound-hint svg { width: 18px; height: 18px; }
 }
 
 @keyframes hint-pulse {
@@ -159,14 +169,23 @@ body {
   overflow-y: auto;
 }
 
-.handle {
-  pointer-events: auto;
+/* Pause sits next to the handle so the most common action stays one tap away
+   while the panel is collapsed. */
+.dock {
   position: absolute;
   left: 50%;
   bottom: max(12px, env(safe-area-inset-bottom));
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
   opacity: 0;
   transition: opacity .35s ease;
+}
+
+.dock > * { pointer-events: auto; }
+
+.handle {
   padding: 8px 16px;
   font-size: 12px;
   letter-spacing: .08em;
@@ -177,14 +196,36 @@ body {
   color: var(--muted);
 }
 
+.quick {
+  width: 44px;
+  height: 44px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+}
+
+.quick svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  vertical-align: middle;
+}
+
+.quick .ic-play { display: none; }
+.quick[aria-pressed="true"] .ic-pause { display: none; }
+.quick[aria-pressed="true"] .ic-play { display: block; }
+
 .ui.hidden .panel {
   opacity: 0;
   transform: translateY(10px);
   pointer-events: none;
 }
 
-.ui.hidden .handle { opacity: 1; }
-.ui:not(.hidden) .handle { pointer-events: none; }
+.ui.hidden .dock { opacity: 1; }
+.ui:not(.hidden) .dock { pointer-events: none; }
 
 .group {
   display: flex;
@@ -344,6 +385,13 @@ input[type="range"] {
 #sound[aria-pressed="false"] .wave,
 #sound[data-blocked="true"] .wave { opacity: .3; }
 
+/* Sound is wanted but the output is still blocked, so the button must not read
+   as active: an accent fill behind a mute slash says two opposite things. */
+#sound[data-blocked="true"] {
+  background: var(--btn);
+  color: var(--text);
+}
+
 .link {
   display: inline-flex;
   align-items: center;
@@ -379,7 +427,7 @@ input[type="range"] {
 
   .ui.hidden .panel { transform: translateX(12px); }
 
-  .handle {
+  .dock {
     left: auto;
     right: max(12px, env(safe-area-inset-right));
     transform: none;
@@ -413,6 +461,6 @@ input[type="range"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ui, .panel, .handle, button { transition: none; }
+  .ui, .panel, .dock, button { transition: none; }
   .sound-hint { animation: none; }
 }

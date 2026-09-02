@@ -20,7 +20,15 @@
   </div>
 
   <div id="ui" class="ui">
-    <button id="handle" class="handle" type="button" data-i18n="controls">Controls</button>
+    <div id="dock" class="dock">
+      <button id="quickPause" class="quick" type="button" aria-pressed="false" aria-label="Pause" data-i18n-label="pause">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path class="ic-pause" d="M8 5h3v14H8zm5 0h3v14h-3z"/>
+          <path class="ic-play" d="M8 5l11 7-11 7z"/>
+        </svg>
+      </button>
+      <button id="handle" class="handle" type="button" data-i18n="controls">Controls</button>
+    </div>
 
     <div class="panel">
       <div class="panel-head">

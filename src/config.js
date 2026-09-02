@@ -164,7 +164,9 @@ export const CONFIG = {
     water: '80,150,215',
     foam: '255,255,255',
     gasket: '#1b1e22',
-    chrome: ['#e2e6ea', '#8d939a', '#3f444a'],
+    chrome: ['#f4f7fa', '#e2e6ea', '#8d939a', '#5b6067', '#3f444a'],
+    // What the door pane has to mirror overhead.
+    sky: '212,226,240',
     led: '#5ff2c8',
     ledDim: 'rgba(95,242,200,0.16)',
     ledBg: '#070a0c',

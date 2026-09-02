@@ -14,19 +14,22 @@
 const SIDEBAR = '(orientation: landscape) and (min-width: 700px)';
 const CROWDED = 0.34;
 
-export function initPanelToggle(ui, { closeButton, handle, open, onReserve, onChange }) {
+export function initPanelToggle(ui, { closeButton, handle, dock, open, onReserve, onChange }) {
   const panel = ui.querySelector('.panel');
+  // The collapsed state shows a dock (quick pause plus the handle), so that is
+  // what reserves height and what goes inert, not the handle alone.
+  const collapsed = dock || handle;
 
   const setInert = (hidden) => {
     if (panel) panel.inert = hidden;
-    handle.inert = !hidden;
+    collapsed.inert = !hidden;
   };
 
   // Reports the top edge of whichever control is showing. A hidden panel keeps
   // its box, so the element has to be picked by state, not by measuring both.
   const measure = () => {
     if (!onReserve) return;
-    const el = ui.classList.contains('hidden') ? handle : panel;
+    const el = ui.classList.contains('hidden') ? collapsed : panel;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     if (rect.height) onReserve(rect.top);
@@ -54,7 +57,7 @@ export function initPanelToggle(ui, { closeButton, handle, open, onReserve, onCh
 
   const ro = new ResizeObserver(measure);
   if (panel) ro.observe(panel);
-  ro.observe(handle);
+  ro.observe(collapsed);
   window.addEventListener('resize', measure);
   window.addEventListener('orientationchange', measure);
 

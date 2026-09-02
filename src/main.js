@@ -22,6 +22,8 @@ const DT = CONFIG.physics.dt;
 const TYPES = Object.keys(CONFIG.laundry.types);
 const DEFAULT_LOAD = ['tshirt', 'sock', 'towel', 'pants', 'tshirt', 'sock'];
 
+const DEFAULT_VOLUME = 0.6;
+
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 const saved = loadState();
@@ -62,7 +64,7 @@ const state = {
   qualityUserSet: Boolean(saved?.quality),
   sound: {
     enabled: saved?.sound?.enabled ?? true,
-    volume: clamp(Number(saved?.sound?.volume ?? 0.6) || 0, 0, 1),
+    volume: clamp(Number(saved?.sound?.volume ?? DEFAULT_VOLUME) || 0, 0, 1),
   },
 };
 audio.setEnabled(state.sound.enabled);
@@ -191,6 +193,11 @@ const app = {
   },
   toggleSound() {
     state.sound.enabled = !state.sound.enabled;
+    // Unmuting with the slider at zero would be a dead end, so give it a level.
+    if (state.sound.enabled && state.sound.volume === 0) {
+      state.sound.volume = DEFAULT_VOLUME;
+      audio.setVolume(state.sound.volume);
+    }
     audio.unlock();
     audio.setEnabled(state.sound.enabled);
     if (state.sound.enabled) audio.beep(1, 1568, 0);
@@ -199,8 +206,12 @@ const app = {
   },
   setVolume(v) {
     state.sound.volume = clamp(v, 0, 1);
+    // Reaching for the volume is a request to hear something, so it takes the
+    // mute off; dragging all the way down is the same as muting.
+    state.sound.enabled = state.sound.volume > 0;
     audio.unlock();
     audio.setVolume(state.sound.volume);
+    audio.setEnabled(state.sound.enabled);
     save();
     refreshUi();
   },
@@ -222,6 +233,7 @@ const picker = initLaundryPicker(uiRoot, app);
 const panelToggle = initPanelToggle(uiRoot, {
   closeButton: uiRoot.querySelector('#hidePanel'),
   handle: uiRoot.querySelector('#handle'),
+  dock: uiRoot.querySelector('#dock'),
   open: state.panelOpen,
   onReserve: (top) => {
     // In the sidebar layout the panel takes width, not height, so it reserves
