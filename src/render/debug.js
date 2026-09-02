@@ -3,7 +3,8 @@ import { UI_FONT } from './font.js';
 const TWO_PI = Math.PI * 2;
 
 export function drawDebug(ctx, vp, state) {
-  const { world, drum, stats } = state;
+  const { world, drum, stats, foam } = state;
+  const a = state.audio.diagnostics();
   ctx.save();
   vp.drumTransform(ctx);
   ctx.lineWidth = 0.004;
@@ -45,6 +46,8 @@ export function drawDebug(ctx, vp, state) {
     `particles ${world.count}  constraints ${world.ccount}  bodies ${world.bodies.length}`,
     `rpm ${(drum.omega * 60 / TWO_PI).toFixed(1)}  theta ${drum.theta.toFixed(2)}  substeps ${stats.substeps}`,
     `water ${state.water.level.toFixed(2)} tilt ${state.water.tilt.toFixed(2)} swirl ${state.water.swirl.toFixed(2)}`,
+    `foam Fr ${foam.fr.toFixed(2)} tumble ${foam.tumble.toFixed(2)} G ${foam.gen.toFixed(4)} vol ${foam.volume.toFixed(3)} n ${foam.items.length}`,
+    `agitation ${world.agitation.toFixed(2)}  audio ${a.state} / ${a.session} / master ${a.master.toFixed(3)}`,
   ];
   lines.forEach((l, i) => ctx.fillText(l, 10, vp.bandHeight + 8 + i * 15));
   ctx.restore();

@@ -78,8 +78,9 @@ export class Cycle {
     return this.stage.level;
   }
 
-  foamIntensity() {
-    return this.stage.foam ?? 0;
+  // Detergent concentration in the drum, not a foam amount.
+  surfactant() {
+    return this.stage.surfactant ?? 0;
   }
 
   accelFor(currentRpm, motorCfg) {

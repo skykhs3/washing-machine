@@ -1,5 +1,4 @@
 const SIDEBAR_WIDTH = 352;
-const PANEL_ESTIMATE = 372;
 
 export class Viewport {
   constructor(canvas) {
@@ -14,6 +13,8 @@ export class Viewport {
     this.R = 1;
     this.portrait = true;
     this.sidebar = false;
+    // Height the controls take off the bottom, measured from the DOM.
+    this.reserved = 0;
     this.generation = 0;
     this.ro = new ResizeObserver(() => this.resize());
     this.ro.observe(canvas);
@@ -24,6 +25,13 @@ export class Viewport {
   setMaxDpr(v) {
     if (v === this.maxDpr) return;
     this.maxDpr = v;
+    this.resize(true);
+  }
+
+  setReserved(px) {
+    const v = Math.max(0, px);
+    if (Math.abs(v - this.reserved) < 0.5) return;
+    this.reserved = v;
     this.resize(true);
   }
 
@@ -40,19 +48,21 @@ export class Viewport {
     this.canvas.height = Math.round(h * dpr);
     this.portrait = h >= w;
     this.sidebar = !this.portrait && w >= 700;
-    if (this.portrait) {
-      const bandBottom = this.bandHeight;
-      // Keep the whole door above the control panel when there is room.
-      const fitR = (h - PANEL_ESTIMATE - bandBottom - 16) / 2.42;
-      this.R = Math.max(0.28 * w, Math.min(0.42 * w, 0.3 * h, fitR));
-      this.cx = w / 2;
-      const room = h - PANEL_ESTIMATE - bandBottom - 2.42 * this.R;
-      this.cy = bandBottom + 1.21 * this.R + Math.max(8, room / 2);
-    } else {
-      const avail = this.sidebar ? w - SIDEBAR_WIDTH : w;
+    if (this.sidebar) {
+      const avail = w - SIDEBAR_WIDTH;
       this.R = Math.min(0.38 * h, 0.25 * w, 0.42 * avail);
-      this.cx = this.sidebar ? Math.min(w / 2, avail - this.R * 1.25) : w / 2;
+      this.cx = Math.min(w / 2, avail - this.R * 1.25);
       this.cy = 0.53 * h;
+    } else {
+      // Portrait, and phone landscape where the panel is a bottom sheet.
+      // Centre the door in whatever is left between the top band and the
+      // controls, whose height is measured rather than guessed, so hiding the
+      // panel actually gives the drum the space back.
+      const top = this.bandHeight;
+      const avail = Math.max(80, h - this.reserved - top);
+      this.R = Math.min(0.42 * w, 0.4 * h, avail / 2.42);
+      this.cx = w / 2;
+      this.cy = top + avail / 2;
     }
     this.generation++;
   }

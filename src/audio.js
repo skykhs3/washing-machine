@@ -10,6 +10,7 @@ export class AudioEngine {
     this.volume = 0.6;
     this.lastImpact = 0;
     this.sloshPhase = 0;
+    this.onStateChange = null;
   }
 
   get supported() {
@@ -20,16 +21,52 @@ export class AudioEngine {
     return Boolean(this.ctx) && this.ctx.state === 'running';
   }
 
-  // Must be called from a user gesture the first time.
+  // True while the output is still blocked and a user gesture would help.
+  get needsGesture() {
+    if (!this.supported) return false;
+    return !this.ctx || this.ctx.state !== 'running';
+  }
+
+  get sessionSupported() {
+    return typeof navigator !== 'undefined' && 'audioSession' in navigator;
+  }
+
+  // iOS puts Web Audio in the "ambient" session category by default, which the
+  // hardware mute switch silences. "playback" ignores the switch, the way an
+  // <audio> element does. Safari and iOS Safari 16.4+ only, so feature detect.
+  claimPlayback() {
+    if (!this.sessionSupported) return;
+    try {
+      navigator.audioSession.type = 'playback';
+    } catch {
+      // not settable here: nothing to do
+    }
+  }
+
+  // Safe to call without a user gesture: the context is then created suspended
+  // and the gesture listeners resume it.
   unlock() {
     if (!this.supported) return;
+    this.claimPlayback();
     if (!this.ctx) {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       this.ctx = new Ctx();
+      this.ctx.onstatechange = () => {
+        if (this.onStateChange) this.onStateChange();
+      };
       this.build();
       this.applyMaster();
+      this.claimPlayback();
     }
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    // iOS reports "interrupted" after a screen lock, a call or a tab switch,
+    // and can need more than one attempt to come back, so retry every gesture
+    // rather than only when the state is exactly "suspended".
+    if (this.ctx.state !== 'running') this.tryResume();
+  }
+
+  tryResume() {
+    const p = this.ctx.resume();
+    if (p && typeof p.catch === 'function') p.catch(() => {});
   }
 
   suspend() {
@@ -37,7 +74,9 @@ export class AudioEngine {
   }
 
   resume() {
-    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+    if (!this.ctx || this.ctx.state === 'running') return;
+    this.claimPlayback();
+    this.tryResume();
   }
 
   setEnabled(v) {
@@ -52,8 +91,16 @@ export class AudioEngine {
 
   applyMaster() {
     if (!this.master) return;
-    const target = this.enabled ? this.volume * this.volume : 0;
+    const target = this.enabled ? this.volume ** 1.6 : 0;
     this.master.gain.setTargetAtTime(target, this.ctx.currentTime, 0.08);
+  }
+
+  diagnostics() {
+    return {
+      state: this.ctx ? this.ctx.state : 'none',
+      session: this.sessionSupported ? navigator.audioSession.type : 'unsupported',
+      master: this.master ? this.master.gain.value : 0,
+    };
   }
 
   build() {
@@ -61,8 +108,8 @@ export class AudioEngine {
     this.master = c.createGain();
     this.master.gain.value = 0;
     const comp = c.createDynamicsCompressor();
-    comp.threshold.value = -18;
-    comp.ratio.value = 6;
+    comp.threshold.value = -12;
+    comp.ratio.value = 4;
     this.master.connect(comp);
     comp.connect(c.destination);
 
@@ -111,8 +158,27 @@ export class AudioEngine {
 
     this.rumble = chain(noise, 'lowpass', 110, 0.7);
     this.slosh = chain(noise, 'bandpass', 500, 0.9);
-    this.fill = chain(noise, 'highpass', 1800, 0.7);
     this.drain = chain(noise, 'bandpass', 260, 3);
+
+    // A filling tub is a Helmholtz resonator: the air column above the water
+    // shortens as the level rises, so the resonance climbs. Rushing noise plus
+    // a peak swept by the water level.
+    const fillHp = c.createBiquadFilter();
+    fillHp.type = 'highpass';
+    fillHp.frequency.value = 900;
+    fillHp.Q.value = 0.7;
+    const fillPeak = c.createBiquadFilter();
+    fillPeak.type = 'peaking';
+    fillPeak.frequency.value = 400;
+    fillPeak.Q.value = 4;
+    fillPeak.gain.value = 12;
+    const fillGain = c.createGain();
+    fillGain.gain.value = 0;
+    noise.connect(fillHp);
+    fillHp.connect(fillPeak);
+    fillPeak.connect(fillGain);
+    fillGain.connect(this.master);
+    this.fill = { f: fillHp, peak: fillPeak, g: fillGain };
 
     this.drainLfo = c.createOscillator();
     this.drainLfo.frequency.value = 5.5;
@@ -145,24 +211,25 @@ export class AudioEngine {
     set(this.motorOsc.frequency, 32 + r * 0.7, 0.2);
     set(this.motorOsc2.frequency, 64 + r * 1.4, 0.2);
     set(this.motor.f.frequency, 110 + r * 2.2, 0.2);
-    set(this.motor.g.gain, spinning ? 0.06 + 0.16 * Math.min(1, r / 180) : 0);
+    set(this.motor.g.gain, spinning ? 0.1 + 0.26 * Math.min(1, r / 180) : 0);
 
     set(this.whineOsc.frequency, 180 + r * 9, 0.2);
     set(this.whine.f.frequency, 180 + r * 9, 0.2);
-    set(this.whine.g.gain, r > 70 ? 0.05 * Math.min(1, (r - 70) / 120) : 0, 0.3);
+    set(this.whine.g.gain, r > 70 ? 0.07 * Math.min(1, (r - 70) / 120) : 0, 0.3);
 
-    set(this.rumble.g.gain, spinning ? 0.22 * Math.min(1, r / 60) * loadK : 0);
+    set(this.rumble.g.gain, spinning ? 0.34 * Math.min(1, r / 60) * loadK : 0);
 
     this.sloshPhase += dt * (1.2 + Math.abs(s.swirl) * 0.8);
     const sloshMod = 0.5 + 0.5 * Math.sin(this.sloshPhase);
     const motion = Math.min(1, Math.abs(s.swirl) / 2.5 + s.agitation / 3);
     set(this.slosh.f.frequency, 350 + 300 * sloshMod + 200 * motion, 0.15);
-    set(this.slosh.g.gain, s.waterActive ? (0.03 + 0.2 * motion) * (0.6 + 0.4 * sloshMod) : 0);
+    set(this.slosh.g.gain, s.waterActive ? (0.05 + 0.3 * motion) * (0.6 + 0.4 * sloshMod) : 0);
 
     const filling = s.target > s.level + 0.005;
     const draining = s.target < s.level - 0.005;
-    set(this.fill.g.gain, filling ? 0.09 : 0, 0.25);
-    set(this.drain.g.gain, draining ? 0.12 * Math.min(1, s.level / 0.1 + 0.2) : 0, 0.25);
+    set(this.fill.peak.frequency, 300 + 900 * Math.min(1, s.level / 0.35), 0.3);
+    set(this.fill.g.gain, filling ? 0.2 : 0, 0.25);
+    set(this.drain.g.gain, draining ? 0.24 * Math.min(1, s.level / 0.1 + 0.2) : 0, 0.25);
   }
 
   impact(strength, wet, splash) {
@@ -172,7 +239,7 @@ export class AudioEngine {
     if (t - this.lastImpact < 0.07) return;
     this.lastImpact = t;
     const k = Math.min(1, strength / 8);
-    const amp = (0.12 + 0.3 * k) * (0.7 + 0.5 * wet);
+    const amp = (0.16 + 0.38 * k) * (0.7 + 0.5 * wet);
 
     const grain = 0.5;
     const offset = Math.random() * (NOISE_SECONDS - grain);
@@ -227,8 +294,8 @@ export class AudioEngine {
       f.frequency.value = 2600;
       const g = c.createGain();
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.09, t + 0.01);
-      g.gain.setValueAtTime(0.09, t + 0.07);
+      g.gain.exponentialRampToValueAtTime(0.12, t + 0.01);
+      g.gain.setValueAtTime(0.12, t + 0.07);
       g.gain.exponentialRampToValueAtTime(0.0001, t + 0.11);
       osc.connect(f);
       f.connect(g);

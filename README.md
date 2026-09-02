@@ -52,8 +52,10 @@ Total: about 57 minutes, then the course starts again. The RPM shown is the simu
 
 - **Laundry** is a small grid of particles joined by distance constraints (structural plus diagonal shear) and solved with position-based dynamics on top of Verlet integration. Wet laundry gets heavier, floppier, and darker.
 - **The drum** is a circular boundary with three lifter capsules that rotate with it. Contacts get Coulomb friction against the moving wall, so at low speed clothes ride up the wall and fall, and at high speed the centripetal term keeps them pinned.
-- **Water** applies buoyancy and drag below a surface that tilts and swirls with the drum. Foam and bubbles are purely visual.
-- **Sound** is synthesised with the Web Audio API from two oscillators and one noise buffer. Motor pitch and level follow RPM and load, slosh level follows the water swirl and how fast laundry moves through the water, and each landing after time in the air fires a one-shot thud (or a splash under the surface) scaled by approach speed and wetness.
+- **Water** applies buoyancy and drag below a surface that tilts and swirls with the drum.
+- **Foam** is air entrained into a surfactant solution, so it needs both detergent and mechanical work. Entrainment is gated by the Froude number `Fr = w^2 R / g`: below the centrifuging threshold the load rides up the wall and drops back through the water, which drags air under, and above it everything is pinned to the wall and the plunging stops. With the drum scaled like a real 50 cm machine the threshold lands near 60 RPM, so foam peaks around 50 ~ 60 RPM and collapses above that. The amount is a volume integrated as `dV/dt = G(1 - V) - V/tau`, so it climbs to a plateau over tens of seconds instead of growing without bound, and sags once the agitation stops. Filling foams on its own because the incoming jet entrains air, each rinse starts with less surfactant so its foam is weaker and shorter lived, and draining thins the films so the head collapses as the level falls. Individual bubbles rise at a terminal velocity proportional to `r^2` along the *effective* gravity, which is gravity plus the centrifugal term, so at speed they migrate toward the drum axis rather than straight up; they coarsen as `dr/dt = k/r` (Ostwald ripening, mean radius growing like `sqrt(t)`) until the film ruptures. Above the surface the foam is given cohesion so it packs, rides up the wall, and shears off in clumps. The foam does not push back on the laundry or the water.
+- Drive it in MANUAL with the water on and sweep the RPM to see the non-monotonic response; `?debug` prints `Fr`, the tumbling gate, the generation rate, and the foam volume.
+- **Sound** is synthesised with the Web Audio API from two oscillators and one noise buffer. The output is opened at load so that just watching has sound; browsers that withhold it until a gesture get a "tap for sound" prompt instead. On iOS the session type is raised to `playback`, because Web Audio otherwise sits in the `ambient` category and is silenced by the hardware mute switch, and the context is resumed from `interrupted` as well as `suspended` so it comes back after a screen lock or a call. Motor pitch and level follow RPM and load, slosh level follows the water swirl and how fast laundry moves through the water, and each landing after time in the air fires a one-shot thud (or a splash under the surface) scaled by approach speed and wetness.
 - **Rendering** uses one canvas. The machine body, back plate, glass, and LED display are cached offscreen. Fast rotation is drawn as a running average of sub-frame poses cross-faded into a pre-blurred back plate so the hole pattern never strobes.
 
 ## Run locally
@@ -65,7 +67,7 @@ python3 -m http.server 8000
 # then open http://localhost:8000
 ```
 
-Add `?debug` to the URL for particles, constraints, lifter capsules, and frame timings. Add `?reset` to clear saved state.
+Add `?debug` to the URL for particles, constraints, lifter capsules, frame timings, the foam state, and the audio output state. Add `?reset` to clear saved state.
 
 ## Project layout
 
@@ -83,7 +85,7 @@ src/ui/                    panel, laundry picker, panel toggle, tap input, local
 
 Any recent browser with ES modules, `ResizeObserver`, `Path2D`, and Pointer Events.
 
-**Low graphics** is a rendering preset for slow devices. It caps the canvas at 1x device pixels, skips the fabric patterns on the laundry, halves the foam, drops the sub-frame motion blur, and limits the load to 12 items. The physics is unchanged. It turns on by itself when the browser reports 4 or fewer cores or 4 GB or less of memory, or when the first seconds run slower than about 45 fps. The toggle in the panel overrides the automatic choice and is remembered.
+**Low graphics** is a rendering preset for slow devices. It caps the canvas at 1x device pixels, skips the fabric patterns on the laundry, halves the foam and drops its per-bubble highlights, drops the sub-frame motion blur, and limits the load to 12 items. The physics is unchanged. It turns on by itself when the browser reports 4 or fewer cores or 4 GB or less of memory, or when the first seconds run slower than about 45 fps. The toggle in the panel overrides the automatic choice and is remembered.
 
 ## License
 

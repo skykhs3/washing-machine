@@ -29,6 +29,7 @@ export class Renderer {
 
   setLowQuality(low) {
     this.low = low;
+    this.foam.setLowQuality(low);
   }
 
   draw(state) {
@@ -53,11 +54,12 @@ export class Renderer {
     ctx.arc(0, 0, 1, 0, TWO_PI);
     ctx.clip();
     this.drumBack.draw(ctx, drum.theta, dTheta, this.low);
-    this.water.drawBack(ctx, water, time, state.foamIntensity);
+    this.water.drawBack(ctx, water, time, foam.volume);
     this.laundry.draw(ctx, world, vp, !this.low);
+    this.foam.drawBulk(ctx, foam, water);
     this.water.drawFront(ctx, water, time);
     this.lifters.draw(ctx, drum.theta, dTheta, this.low);
-    this.foam.draw(ctx, foam, water);
+    this.foam.drawRaft(ctx, foam, water, this.water, time);
     ctx.restore();
 
     vp.pixelTransform(ctx);

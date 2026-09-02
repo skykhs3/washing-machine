@@ -55,6 +55,46 @@ body {
   white-space: nowrap;
 }
 
+/* ---- sound hint ---- */
+
+.sound-hint {
+  pointer-events: none;
+  position: fixed;
+  left: 50%;
+  top: max(56px, 16%);
+  transform: translateX(-50%);
+  z-index: 3;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100vw - 24px);
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  animation: hint-pulse 2.4s ease-in-out infinite;
+}
+
+.sound-hint.show { display: inline-flex; }
+
+.sound-hint svg {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+@keyframes hint-pulse {
+  0%, 100% { opacity: .78; }
+  50% { opacity: 1; }
+}
+
 /* ---- overlay UI ---- */
 
 .ui {
@@ -299,8 +339,10 @@ input[type="range"] {
 }
 
 #sound .slash { display: none; }
-#sound[aria-pressed="false"] .slash { display: block; }
-#sound[aria-pressed="false"] .wave { opacity: .3; }
+#sound[aria-pressed="false"] .slash,
+#sound[data-blocked="true"] .slash { display: block; }
+#sound[aria-pressed="false"] .wave,
+#sound[data-blocked="true"] .wave { opacity: .3; }
 
 .link {
   display: inline-flex;
@@ -372,4 +414,5 @@ input[type="range"] {
 
 @media (prefers-reduced-motion: reduce) {
   .ui, .panel, .handle, button { transition: none; }
+  .sound-hint { animation: none; }
 }
