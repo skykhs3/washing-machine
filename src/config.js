@@ -1,4 +1,60 @@
 export const CONFIG = {
+  physics: {
+    dt: 1 / 120,
+    maxStepsPerFrame: 4,
+    maxFrameDt: 0.1,
+    iterations: 5,
+    pairIterations: 2,
+    gravity: 39,
+    wallFriction: 0.5,
+    wallRestitution: 0.1,
+    structuralStiffness: 1.0,
+    shearStiffness: 0.3,
+    particleRadius: 0.045,
+    spacing: 0.1,
+    maxParticles: 512,
+    maxConstraints: 2048,
+    maxSpeed: 40,
+    maxStepDisplacement: 0.35,
+    airDrag: 0.3,
+    substepMove: 0.06,
+    maxSubsteps: 3,
+    lifter: { count: 3, outer: 1.03, inner: 0.88, radius: 0.06 },
+    escapeRadius: 1.2,
+  },
+
+  motor: {
+    accelManual: 6,
+    maxRpm: 240,
+  },
+
+  laundry: {
+    removeFade: 0.5,
+    spawnY: -0.55,
+    types: {
+      tshirt: {
+        mask: ['#####', '.###.', '.###.', '.###.'],
+        colors: ['#e8574f', '#3f8fd2', '#f2c14e', '#f5f1e8', '#6dbf8a'],
+        pattern: 'stripes',
+      },
+      sock: {
+        mask: ['.##', '.##', '.##', '###'],
+        colors: ['#f5f1e8', '#3a3f5c', '#7dc27a', '#f08a5d'],
+        pattern: 'dots',
+      },
+      towel: {
+        mask: ['###', '###', '###', '###', '###'],
+        colors: ['#f0a6c8', '#9ad1e6', '#f7e7a1', '#c8b6ff'],
+        pattern: 'waffle',
+      },
+      pants: {
+        mask: ['#####', '#####', '##.##', '##.##'],
+        colors: ['#2f4f8a', '#4a6ea8', '#3d3d3d', '#7a5c3e'],
+        pattern: 'denim',
+      },
+    },
+  },
+
   palette: {
     bodyTop: '#3a3f47',
     bodyBottom: '#22262c',

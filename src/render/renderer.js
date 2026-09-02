@@ -2,6 +2,7 @@ import { BodyLayer } from './body.js';
 import { GlassLayer } from './glass.js';
 import { DrumBackLayer } from './drumBack.js';
 import { LifterLayer } from './lifters.js';
+import { drawDebug } from './debug.js';
 
 const TWO_PI = Math.PI * 2;
 
@@ -17,7 +18,7 @@ export class Renderer {
     this.gen = -1;
   }
 
-  draw() {
+  draw(state) {
     const vp = this.vp;
     const ctx = vp.ctx;
     if (vp.generation !== this.gen) {
@@ -26,6 +27,8 @@ export class Renderer {
       this.glass.rebuild(vp);
       this.drumBack.rebuild(vp);
     }
+    const { drum, frameDt } = state;
+    const dTheta = drum.omega * frameDt;
 
     vp.pixelTransform(ctx);
     this.body.draw(ctx, vp);
@@ -35,11 +38,12 @@ export class Renderer {
     ctx.beginPath();
     ctx.arc(0, 0, 1, 0, TWO_PI);
     ctx.clip();
-    this.drumBack.draw(ctx, 0, 0, false);
-    this.lifters.draw(ctx, 0, 0, false);
+    this.drumBack.draw(ctx, drum.theta, dTheta, false);
+    this.lifters.draw(ctx, drum.theta, dTheta, false);
     ctx.restore();
 
     vp.pixelTransform(ctx);
     this.glass.draw(ctx, vp);
+    if (state.debug) drawDebug(ctx, vp, state);
   }
 }
