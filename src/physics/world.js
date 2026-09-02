@@ -258,7 +258,7 @@ export class World {
         const yr = -cx * sinT + cy * cosT;
         const splash = water.active && yr > ys - 0.05;
         if (!splash || maxImp > 3) {
-          this.events.push({ type: 'impact', strength: maxImp, wet: b.wet, splash });
+          this.events.push({ type: 'impact', strength: maxImp, wet: b.wet, splash, x: cx, y: cy });
           b.cooldown = splash ? 0.6 : 0.4;
         }
       }

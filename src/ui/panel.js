@@ -42,6 +42,9 @@ export function initPanel(root, app) {
       els.skip.disabled = manual;
       els.lowPower.setAttribute('aria-pressed', String(s.low));
       els.sound.setAttribute('aria-pressed', String(s.sound.enabled));
+      // aria-pressed stays the user's intent; the slash also shows when the
+      // output is still blocked and needs a gesture.
+      els.sound.dataset.blocked = String(s.sound.enabled && !app.soundReady());
       const vol = Math.round(s.sound.volume * 100);
       els.volume.value = String(vol);
       els.volume.setAttribute('aria-valuetext', `${vol}%`);

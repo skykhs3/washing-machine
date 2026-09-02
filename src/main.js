@@ -28,6 +28,9 @@ const saved = loadState();
 const canvas = document.getElementById('scene');
 const uiRoot = document.getElementById('ui');
 const live = document.getElementById('live');
+const soundHint = document.getElementById('soundHint');
+// Whether the "tap for sound" chip is up. null forces the next poll to sync it.
+let hintShown = null;
 
 const vp = new Viewport(canvas);
 const world = new World(CONFIG.physics, CONFIG.laundry);
@@ -35,7 +38,7 @@ const drum = new Drum(CONFIG.physics);
 const motor = new Motor(CONFIG.motor);
 const water = new Water(CONFIG.water);
 const cycle = new Cycle(CONFIG.cycle);
-const foam = new Foam(CONFIG.foam.max);
+const foam = new Foam(CONFIG.foam);
 const renderer = new Renderer(vp, CONFIG);
 const audio = new AudioEngine();
 
@@ -54,6 +57,7 @@ const state = {
     water: Boolean(saved?.manual?.water),
   },
   lang: detectLang(saved?.lang),
+  panelOpen: typeof saved?.panelOpen === 'boolean' ? saved.panelOpen : undefined,
   low: saved?.quality ? saved.quality === 'low' : lowHint,
   qualityUserSet: Boolean(saved?.quality),
   sound: {
@@ -75,6 +79,7 @@ const save = createSaver(() => ({
   mode: state.mode,
   manual: state.manual,
   lang: state.lang,
+  panelOpen: state.panelOpen,
   sound: state.sound,
   quality: state.qualityUserSet ? (state.low ? 'low' : 'high') : undefined,
 }));
@@ -99,6 +104,9 @@ const app = {
   },
   waterOn() {
     return state.mode === 'manual' ? state.manual.water : water.target > 0;
+  },
+  soundReady() {
+    return !audio.needsGesture;
   },
   addLaundry(type, at, colorIdx) {
     if (this.laundryCount() >= this.laundryMax()) return;
@@ -198,15 +206,38 @@ const app = {
   },
 };
 
+// Try to open the output straight away so simply watching the machine has
+// sound; if the browser withholds it the context is created suspended and the
+// gesture listeners below resume it. iOS also lands here after an
+// interruption, which is why every gesture retries rather than only the first.
 for (const ev of ['pointerdown', 'keydown', 'touchend', 'click']) {
   window.addEventListener(ev, () => audio.unlock(), { passive: true });
 }
+audio.onStateChange = () => {
+  hintShown = null;
+};
 
 const panel = initPanel(uiRoot, app);
 const picker = initLaundryPicker(uiRoot, app);
 const panelToggle = initPanelToggle(uiRoot, {
   closeButton: uiRoot.querySelector('#hidePanel'),
   handle: uiRoot.querySelector('#handle'),
+  open: state.panelOpen,
+  onReserve: (top) => {
+    // In the sidebar layout the panel takes width, not height, so it reserves
+    // nothing off the bottom; reporting its top edge there would leave a full
+    // panel height reserved behind for the next portrait layout.
+    if (vp.sidebar) {
+      vp.setReserved(0);
+      return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    vp.setReserved(rect.bottom - top + 8);
+  },
+  onChange: (open) => {
+    state.panelOpen = open;
+    save();
+  },
 });
 initCanvasTap(canvas, vp, (p) => {
   const r = Math.hypot(p.x, p.y);
@@ -220,11 +251,14 @@ const initial = Array.isArray(saved?.laundry) ? saved.laundry : DEFAULT_LOAD.map
 for (const item of initial.slice(0, app.laundryMax())) {
   app.addLaundry(item.type, undefined, item.colorIdx);
 }
+if (state.sound.enabled) audio.unlock();
 refreshUi();
 
 function refreshUi() {
   panel.refresh();
   picker.refresh();
+  hintShown = state.sound.enabled && audio.needsGesture;
+  soundHint.classList.toggle('show', hintShown);
 }
 
 function applyQuality() {
@@ -279,10 +313,12 @@ function simStep(dt) {
 }
 let lastStageIdx = cycle.idx;
 
-function foamIntensity() {
-  if (state.mode === 'auto') return cycle.foamIntensity();
-  if (!water.active) return 0;
-  return Math.abs(motor.rpm) > 5 ? 0.6 : 0.15;
+// Detergent concentration only. How much foam that actually produces depends
+// on the air the tumbling load entrains, which Foam.update works out from the
+// drum speed and the agitation.
+function surfactantLevel() {
+  if (state.mode === 'auto') return cycle.surfactant();
+  return water.active ? 0.8 : 0;
 }
 
 function hudInfo() {
@@ -337,7 +373,10 @@ function frame(now) {
   }
   const t1 = performance.now();
 
-  for (const e of world.events) audio.impact(e.strength, e.wet, e.splash);
+  for (const e of world.events) {
+    audio.impact(e.strength, e.wet, e.splash);
+    if (e.splash) foam.splash(e, water.tilt);
+  }
   world.events.length = 0;
   audio.update(frameDt, {
     rpm: motor.rpm,
@@ -350,10 +389,16 @@ function frame(now) {
     paused: state.paused,
   });
 
-  const intensity = foamIntensity();
   const dtVisual = state.paused ? 0 : frameDt;
   const info = hudInfo();
-  foam.update(dtVisual, water, intensity, world.time);
+  foam.update(dtVisual, {
+    water,
+    drum,
+    agitation: world.agitation,
+    surfactant: surfactantLevel(),
+    gravity: CONFIG.physics.gravity,
+    time: world.time,
+  });
   renderer.draw({
     world,
     drum,
@@ -361,10 +406,10 @@ function frame(now) {
     foam,
     time: world.time,
     frameDt: dtVisual,
-    foamIntensity: intensity,
     hud: info,
     debug: DEBUG,
     stats,
+    audio,
   });
   const t2 = performance.now();
 
@@ -383,6 +428,7 @@ function frame(now) {
   if (uiTimer > 0.1) {
     uiTimer = 0;
     panel.syncRpm();
+    if (hintShown !== (state.sound.enabled && audio.needsGesture)) refreshUi();
   }
   liveTimer += frameDt;
   if (liveTimer > 1) {
@@ -460,6 +506,6 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-if (DEBUG) window.__washer = { world, drum, motor, water, cycle, state, app, audio };
+if (DEBUG) window.__washer = { world, drum, motor, water, cycle, state, app, audio, vp, foam, cfg: CONFIG };
 
 rafId = requestAnimationFrame(frame);
