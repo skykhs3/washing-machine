@@ -20,12 +20,30 @@ export const CONFIG = {
     substepMove: 0.06,
     maxSubsteps: 3,
     lifter: { count: 3, outer: 1.03, inner: 0.88, radius: 0.06 },
+    wetMassGain: 1.5,
+    wetRate: 3,
+    dryRate: 20,
+    dryOmega: 10,
     escapeRadius: 1.2,
   },
 
   motor: {
     accelManual: 6,
     maxRpm: 240,
+  },
+
+  water: {
+    fillRate: 0.0022,
+    drainRate: 0.0045,
+    tiltGain: 0.04,
+    tiltMax: 0.44,
+    tiltTau: 0.6,
+    swirlRatio: 0.3,
+    swirlTau: 0.8,
+    buoyancy: 0.85,
+    linearDrag: 2.0,
+    quadDrag: 3.0,
+    manualLevel: 0.35,
   },
 
   laundry: {
@@ -68,6 +86,7 @@ export const CONFIG = {
     rib: '#565d66',
     lifter: '#aab1ba',
     lifterDark: '#6b727b',
+    water: '80,150,215',
     gasket: '#1b1e22',
     chrome: ['#e2e6ea', '#8d939a', '#3f444a'],
   },

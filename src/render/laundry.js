@@ -104,8 +104,9 @@ export class LaundryLayer {
     for (const b of world.bodies) {
       const tpl = b.tpl;
       const base = tpl.colors[b.colorIdx % tpl.colors.length];
-      const fill = base;
-      const edge = this.shade(base, 0.42);
+      const wet = b.wet;
+      const fill = this.shade(base, 0.32 * wet);
+      const edge = this.shade(base, 0.42 + 0.2 * wet);
 
       ctx.save();
       if (b.alpha < 1) ctx.globalAlpha = Math.max(0, b.alpha);

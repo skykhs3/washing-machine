@@ -44,6 +44,7 @@ export function drawDebug(ctx, vp, state) {
     `fps ${stats.fps.toFixed(0)}  frame ${stats.frameMs.toFixed(1)}ms  physics ${stats.physMs.toFixed(2)}ms`,
     `particles ${world.count}  constraints ${world.ccount}  bodies ${world.bodies.length}`,
     `rpm ${(drum.omega * 60 / TWO_PI).toFixed(1)}  theta ${drum.theta.toFixed(2)}  substeps ${stats.substeps}`,
+    `water ${state.water.level.toFixed(2)} tilt ${state.water.tilt.toFixed(2)} swirl ${state.water.swirl.toFixed(2)}`,
   ];
   lines.forEach((l, i) => ctx.fillText(l, 10, vp.bandHeight + 8 + i * 15));
   ctx.restore();

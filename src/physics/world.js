@@ -12,6 +12,7 @@ export class World {
     this.ppy = new Float32Array(N);
     this.invMass = new Float32Array(N);
     this.radius = new Float32Array(N);
+    this.wet = new Float32Array(N);
     this.cnx = new Float32Array(N);
     this.cny = new Float32Array(N);
     this.flag = new Uint8Array(N);
@@ -64,6 +65,7 @@ export class World {
       this.ppy[i] = wy - vy * h;
       this.invMass[i] = 1;
       this.radius[i] = rp;
+      this.wet[i] = 0;
       this.flag[i] = 0;
       this.bodyIdx[i] = bi;
       this.gcol[i] = tpl.cols[k];
@@ -89,6 +91,7 @@ export class World {
       colorIdx,
       alpha: 1,
       removing: false,
+      wet: 0,
     };
     this.bodies.push(body);
     this.count += tpl.n;
@@ -114,7 +117,7 @@ export class World {
   // Compacts particle storage after bodies were removed and rebuilds the
   // constraint list from the templates.
   rebuild() {
-    const arrays = [this.px, this.py, this.ppx, this.ppy, this.invMass, this.radius, this.gcol, this.grow];
+    const arrays = [this.px, this.py, this.ppx, this.ppy, this.invMass, this.radius, this.wet, this.gcol, this.grow];
     let start = 0;
     this.bodies.forEach((b, bi) => {
       if (b.start !== start) {
@@ -139,7 +142,7 @@ export class World {
     }
   }
 
-  step(dt, drum) {
+  step(dt, drum, water) {
     this.processRemovals(dt);
     const cfg = this.cfg;
     const omega = drum.omega;
@@ -147,9 +150,10 @@ export class World {
     const h = dt / sub;
     if (h !== this.lastH) this.rescaleVelocities(h / this.lastH);
     this.lastH = h;
+    this.updateWetEffects();
     for (let s = 0; s < sub; s++) {
       drum.advance(h);
-      this.integrate(h, cfg.gravity);
+      this.integrate(h, water, cfg.gravity, omega);
       for (let it = 0; it < cfg.iterations; it++) {
         this.solveDistance();
         if (it < cfg.pairIterations) {
@@ -188,12 +192,44 @@ export class World {
     }
   }
 
-  integrate(h, g) {
-    const { px, py, ppx, ppy, flag, count } = this;
+  updateWetEffects() {
+    const { wet, invMass, cStiff, cShear } = this;
+    const gain = this.cfg.wetMassGain;
+    const shearK = this.cfg.shearStiffness;
+    for (const b of this.bodies) {
+      let sum = 0;
+      const end = b.start + b.n;
+      for (let i = b.start; i < end; i++) {
+        sum += wet[i];
+        invMass[i] = 1 / (1 + gain * wet[i]);
+      }
+      b.wet = sum / b.n;
+      const k = shearK * (1 - 0.5 * b.wet);
+      const cend = b.cStart + b.cN;
+      for (let c = b.cStart; c < cend; c++) {
+        if (cShear[c]) cStiff[c] = k;
+      }
+    }
+  }
+
+  integrate(h, water, g, omega) {
+    const { px, py, ppx, ppy, wet, radius, flag, count } = this;
     const cfg = this.cfg;
     const airK = Math.exp(-cfg.airDrag * h);
+    const hasWater = water.active;
+    const cosT = Math.cos(water.tilt);
+    const sinT = Math.sin(water.tilt);
+    const ys = water.surfaceY;
+    const swirl = water.swirl;
+    const wc = water.cfg;
+    const beta = wc.buoyancy;
+    const c1 = wc.linearDrag;
+    const c2 = wc.quadDrag;
     const maxV = cfg.maxSpeed;
     const maxV2 = maxV * maxV;
+    const drying = !hasWater && Math.abs(omega) > cfg.dryOmega;
+    const wetRate = h / cfg.wetRate;
+    const dryStep = h / cfg.dryRate;
     const h2 = h * h;
 
     for (let i = 0; i < count; i++) {
@@ -201,9 +237,34 @@ export class World {
       const y = py[i];
       let vx = (x - ppx[i]) / h;
       let vy = (y - ppy[i]) / h;
-      const ay = g;
-      vx *= airK;
-      vy *= airK;
+      let ay = g;
+      let inWater = false;
+      if (hasWater) {
+        const yr = -x * sinT + y * cosT;
+        let s = (yr - ys) / (2 * radius[i]) + 0.5;
+        if (s > 0) {
+          if (s > 1) s = 1;
+          inWater = true;
+          ay -= g * beta * s;
+          const wvx = -swirl * y;
+          const wvy = swirl * x;
+          const rx = vx - wvx;
+          const ry = vy - wvy;
+          const sp = Math.sqrt(rx * rx + ry * ry);
+          const f = Math.exp(-c1 * s * h) / (1 + c2 * s * sp * h);
+          vx = wvx + rx * f;
+          vy = wvy + ry * f;
+          wet[i] += (1 - wet[i]) * wetRate * s;
+        }
+      }
+      if (!inWater) {
+        vx *= airK;
+        vy *= airK;
+        if (drying) {
+          wet[i] -= dryStep;
+          if (wet[i] < 0) wet[i] = 0;
+        }
+      }
       const v2 = vx * vx + vy * vy;
       if (v2 > maxV2) {
         const k = maxV / Math.sqrt(v2);

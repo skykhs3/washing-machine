@@ -126,7 +126,7 @@ export class Drum {
   // Coulomb friction and restitution against the rotating drum surface.
   // Contact normals point from the particle into the obstacle.
   applyContactVelocities(world, h, g) {
-    const { px, py, ppx, ppy, flag, cnx, cny, count } = world;
+    const { px, py, ppx, ppy, wet, flag, cnx, cny, count } = world;
     const omega = this.omega;
     const w2 = omega * omega;
     const mu = this.mu;
@@ -146,7 +146,8 @@ export class Drum {
       const vn = rvx * nx + rvy * ny;
       let tvx = rvx - vn * nx;
       let tvy = rvy - vn * ny;
-      const vn2 = vn > 0 ? -e0 * vn : vn;
+      const e = e0 * (1 - wet[i]);
+      const vn2 = vn > 0 ? -e * vn : vn;
       const normalAccel = g * ny + w2 * (x * nx + y * ny);
       const jn = Math.abs(vn2 - vn) + h * (normalAccel > 0 ? normalAccel : 0);
       const tmag = Math.sqrt(tvx * tvx + tvy * tvy);

@@ -2,6 +2,7 @@ import { CONFIG } from './config.js';
 import { World } from './physics/world.js';
 import { Drum } from './physics/drum.js';
 import { Motor } from './physics/motor.js';
+import { Water } from './physics/water.js';
 import { Viewport } from './render/viewport.js';
 import { Renderer } from './render/renderer.js';
 
@@ -16,6 +17,7 @@ const vp = new Viewport(canvas);
 const world = new World(CONFIG.physics, CONFIG.laundry);
 const drum = new Drum(CONFIG.physics);
 const motor = new Motor(CONFIG.motor);
+const water = new Water(CONFIG.water);
 const renderer = new Renderer(vp, CONFIG);
 
 for (const type of DEFAULT_LOAD) {
@@ -26,9 +28,11 @@ for (const type of DEFAULT_LOAD) {
 
 function simStep(dt) {
   motor.setTargetRpm(45, CONFIG.motor.accelManual);
+  water.target = CONFIG.water.manualLevel;
   motor.update(dt);
   drum.omega = motor.omega;
-  world.step(dt, drum);
+  water.update(dt, drum.omega);
+  world.step(dt, drum, water);
 }
 
 const stats = { fps: 0, frameMs: 0, physMs: 0, substeps: 1 };
@@ -53,7 +57,7 @@ function frame(now) {
   if (steps === CONFIG.physics.maxStepsPerFrame) acc = 0;
   const t1 = performance.now();
 
-  renderer.draw({ world, drum, frameDt, debug: DEBUG, stats });
+  renderer.draw({ world, drum, water, time: world.time, frameDt, debug: DEBUG, stats });
   const t2 = performance.now();
 
   stats.physMs = t1 - t0;
@@ -68,6 +72,6 @@ function frame(now) {
   }
 }
 
-if (DEBUG) window.__washer = { world, drum, motor };
+if (DEBUG) window.__washer = { world, drum, motor, water };
 
 requestAnimationFrame(frame);
