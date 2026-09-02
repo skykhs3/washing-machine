@@ -18,6 +18,7 @@ export class World {
     this.impact = new Float32Array(N);
     this.events = [];
     this.agitation = 0;
+    this.wetness = 0;
     this.flag = new Uint8Array(N);
     this.bodyIdx = new Int16Array(N);
     this.gcol = new Int8Array(N);
@@ -212,6 +213,8 @@ export class World {
     const { wet, invMass, cStiff, cShear } = this;
     const gain = this.cfg.wetMassGain;
     const shearK = this.cfg.shearStiffness;
+    let wetSum = 0;
+    let wetN = 0;
     for (const b of this.bodies) {
       let sum = 0;
       const end = b.start + b.n;
@@ -220,12 +223,17 @@ export class World {
         invMass[i] = 1 / (1 + gain * wet[i]);
       }
       b.wet = sum / b.n;
+      if (!b.removing) {
+        wetSum += b.wet;
+        wetN++;
+      }
       const k = shearK * (1 - 0.5 * b.wet);
       const cend = b.cStart + b.cN;
       for (let c = b.cStart; c < cend; c++) {
         if (cShear[c]) cStiff[c] = k;
       }
     }
+    this.wetness = wetN ? wetSum / wetN : 0;
   }
 
   // Emits one event per body when it lands on the drum after time in the

@@ -323,6 +323,8 @@ function simStep(dt) {
   world.step(dt, drum, water);
   if (state.mode === 'auto' && cycle.idx !== lastStageIdx) {
     if (cycle.stage.id === 'done') audio.beep(3);
+    // The interlock engages as a course starts, just before the inlet opens.
+    if (cycle.stage.id === 'fill') audio.doorLock();
     lastStageIdx = cycle.idx;
   }
 }
@@ -401,6 +403,8 @@ function frame(now) {
     swirl: water.swirl,
     agitation: world.agitation,
     load: world.liveCount,
+    wetness: world.wetness,
+    lifters: CONFIG.physics.lifter.count,
     paused: state.paused,
   });
 
