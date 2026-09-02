@@ -132,7 +132,6 @@ export class GlassLayer {
     g.stroke();
 
     hinges(g, pal);
-    handle(g, pal);
   }
 
   draw(ctx, vp) {
@@ -157,58 +156,6 @@ function streak(g, cx, cy, rot, len, wide, alpha) {
   g.arc(0, 0, 1, 0, TWO_PI);
   g.fill();
   g.restore();
-}
-
-// A front loader hinges on the left and is opened from the right, so the grip
-// is a raised pad on that side with a finger pocket behind it, lit from the
-// upper left like the rest of the machine.
-function handle(g, pal) {
-  const x0 = 1.04;
-  const x1 = 1.235;
-  const half = 0.29;
-
-  g.save();
-  g.shadowColor = 'rgba(0,0,0,0.45)';
-  g.shadowBlur = 0.05;
-  g.shadowOffsetX = 0.012;
-  g.shadowOffsetY = 0.018;
-  roundRect(g, x0, -half, x1 - x0, half * 2, 0.075);
-  const pad = g.createLinearGradient(0, -half, 0, half);
-  pad.addColorStop(0, pal.chrome[1]);
-  pad.addColorStop(0.3, pal.chrome[2]);
-  pad.addColorStop(0.72, pal.chrome[3]);
-  pad.addColorStop(1, pal.chrome[4]);
-  g.fillStyle = pad;
-  g.fill();
-  g.restore();
-
-  g.strokeStyle = 'rgba(0,0,0,0.5)';
-  g.lineWidth = 0.008;
-  roundRect(g, x0, -half, x1 - x0, half * 2, 0.075);
-  g.stroke();
-
-  // Finger pocket: the hand goes in behind the grip, so it is in shadow and
-  // deepest against the inner wall.
-  roundRect(g, x0 + 0.028, -half + 0.06, 0.1, (half - 0.06) * 2, 0.042);
-  const pocket = g.createLinearGradient(x0, 0, x0 + 0.13, 0);
-  pocket.addColorStop(0, '#07090b');
-  pocket.addColorStop(1, '#2a2e34');
-  g.fillStyle = pocket;
-  g.fill();
-
-  // Top edge of the pad faces the light, bottom edge faces the floor.
-  g.lineCap = 'round';
-  g.lineWidth = 0.012;
-  g.strokeStyle = 'rgba(255,255,255,0.34)';
-  g.beginPath();
-  g.moveTo(x0 + 0.07, -half + 0.008);
-  g.lineTo(x1 - 0.07, -half + 0.008);
-  g.stroke();
-  g.strokeStyle = 'rgba(0,0,0,0.3)';
-  g.beginPath();
-  g.moveTo(x0 + 0.07, half - 0.008);
-  g.lineTo(x1 - 0.07, half - 0.008);
-  g.stroke();
 }
 
 // Two hinge tabs on the left, so which side the door swings from is readable.

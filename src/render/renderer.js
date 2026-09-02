@@ -5,7 +5,8 @@ import { LifterLayer } from './lifters.js';
 import { WaterLayer } from './water.js';
 import { LaundryLayer } from './laundry.js';
 import { FoamLayer } from './foam.js';
-import { Hud } from './hud.js';
+import { DoorHandleLayer } from './doorHandle.js';
+import { Hud, hudRect } from './hud.js';
 import { drawDebug } from './debug.js';
 
 const TWO_PI = Math.PI * 2;
@@ -22,9 +23,25 @@ export class Renderer {
     this.water = new WaterLayer(pal);
     this.laundry = new LaundryLayer(cfg.physics);
     this.foam = new FoamLayer(pal);
+    this.handle = new DoorHandleLayer(pal);
     this.hud = new Hud(pal);
     this.gen = -1;
     this.low = false;
+  }
+
+  // Tap targets on the canvas. The console and the door grip both answer, but
+  // neither changes any state: they only make the machine feel physical.
+  hitHud(px) {
+    const r = hudRect(this.vp);
+    return px.x >= r.x && px.x <= r.x + r.w && px.y >= r.y && px.y <= r.y + r.h;
+  }
+
+  hitHandle(drum) {
+    return this.handle.hit(drum);
+  }
+
+  clickHandle() {
+    this.handle.click();
   }
 
   setLowQuality(low) {
@@ -64,6 +81,14 @@ export class Renderer {
 
     vp.pixelTransform(ctx);
     this.glass.draw(ctx, vp);
+
+    // The latch keeps working while the simulation is paused, so it runs off
+    // the real frame time rather than the simulation's.
+    this.handle.update(state.uiDt);
+    vp.drumTransform(ctx);
+    this.handle.draw(ctx);
+
+    vp.pixelTransform(ctx);
     this.hud.draw(ctx, vp, state.hud);
     if (state.debug) drawDebug(ctx, vp, state);
   }

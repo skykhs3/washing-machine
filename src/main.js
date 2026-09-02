@@ -110,15 +110,13 @@ const app = {
   soundReady() {
     return !audio.needsGesture;
   },
-  addLaundry(type, at, colorIdx) {
+  addLaundry(type, colorIdx) {
     if (this.laundryCount() >= this.laundryMax()) return;
     const kind = type && TYPES.includes(type) ? type : TYPES[Math.floor(Math.random() * TYPES.length)];
     const colors = CONFIG.laundry.types[kind].colors;
     spawnQueue.push({
       type: kind,
       colorIdx: colorIdx ?? Math.floor(Math.random() * colors.length),
-      x: at?.x,
-      y: at?.y,
     });
     save();
     refreshUi();
@@ -251,17 +249,23 @@ const panelToggle = initPanelToggle(uiRoot, {
     save();
   },
 });
-initCanvasTap(canvas, vp, (p) => {
-  const r = Math.hypot(p.x, p.y);
-  const k = r > 0.6 ? 0.6 / r : 1;
-  app.addLaundry(null, { x: p.x * k, y: p.y * k });
+initCanvasTap(canvas, vp, (tap) => {
+  audio.unlock();
+  if (renderer.hitHud(tap.px)) {
+    audio.keyBeep();
+    return;
+  }
+  if (renderer.hitHandle(tap.drum)) {
+    renderer.clickHandle();
+    audio.latch();
+  }
 });
 applyI18n(document, state.lang);
 applyQuality();
 
 const initial = Array.isArray(saved?.laundry) ? saved.laundry : DEFAULT_LOAD.map((type) => ({ type }));
 for (const item of initial.slice(0, app.laundryMax())) {
-  app.addLaundry(item.type, undefined, item.colorIdx);
+  app.addLaundry(item.type, item.colorIdx);
 }
 if (state.sound.enabled) audio.unlock();
 refreshUi();
@@ -290,16 +294,15 @@ function tickSpawn(dt) {
   if (!world.canAdd(item.type)) return;
   spawnQueue.shift();
   const tpl = world.templates[item.type];
-  const fromTap = item.x != null;
-  let x = fromTap ? item.x : (Math.random() - 0.5) * 0.3;
-  let y = fromTap ? item.y : CONFIG.laundry.spawnY;
+  let x = (Math.random() - 0.5) * 0.3;
+  let y = CONFIG.laundry.spawnY;
   const maxR = 1 - tpl.extent - 0.04;
   const r = Math.hypot(x, y);
   if (r > maxR) {
     x = (x / r) * maxR;
     y = (y / r) * maxR;
   }
-  world.addBody(item.type, x, y, Math.random() * Math.PI * 2, item.colorIdx, Math.random() - 0.5, fromTap ? 0 : 1);
+  world.addBody(item.type, x, y, Math.random() * Math.PI * 2, item.colorIdx, Math.random() - 0.5, 1);
   spawnTimer = CONFIG.laundry.spawnInterval;
   refreshUi();
 }
@@ -418,6 +421,7 @@ function frame(now) {
     foam,
     time: world.time,
     frameDt: dtVisual,
+    uiDt: frameDt,
     hud: info,
     debug: DEBUG,
     stats,
@@ -518,6 +522,6 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-if (DEBUG) window.__washer = { world, drum, motor, water, cycle, state, app, audio, vp, foam, cfg: CONFIG };
+if (DEBUG) window.__washer = { world, drum, motor, water, cycle, state, app, audio, vp, foam, renderer, cfg: CONFIG };
 
 rafId = requestAnimationFrame(frame);

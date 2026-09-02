@@ -60,10 +60,11 @@ export class Viewport {
       // panel actually gives the drum the space back.
       const top = this.bandHeight;
       const avail = Math.max(80, h - this.reserved - top);
-      // 0.4 w rather than half the width: the door handle reaches out to 1.235
-      // drum radii on the right and still has to fit on screen.
-      this.R = Math.min(0.4 * w, 0.4 * h, avail / 2.42);
-      this.cx = w / 2;
+      // The door is not symmetric: the surround reaches 1.19 drum radii to the
+      // left but the grip and its shadow reach about 1.295 to the right. Size
+      // and offset for that span so neither side runs off the screen.
+      this.R = Math.min(0.385 * w, 0.4 * h, avail / 2.42);
+      this.cx = w / 2 - 0.05 * this.R;
       this.cy = top + avail / 2;
     }
     this.generation++;
