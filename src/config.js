@@ -73,6 +73,8 @@ export const CONFIG = {
     },
   },
 
+  foam: { max: 60 },
+
   palette: {
     bodyTop: '#3a3f47',
     bodyBottom: '#22262c',
@@ -87,6 +89,7 @@ export const CONFIG = {
     lifter: '#aab1ba',
     lifterDark: '#6b727b',
     water: '80,150,215',
+    foam: '255,255,255',
     gasket: '#1b1e22',
     chrome: ['#e2e6ea', '#8d939a', '#3f444a'],
   },

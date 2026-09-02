@@ -4,6 +4,7 @@ import { DrumBackLayer } from './drumBack.js';
 import { LifterLayer } from './lifters.js';
 import { WaterLayer } from './water.js';
 import { LaundryLayer } from './laundry.js';
+import { FoamLayer } from './foam.js';
 import { drawDebug } from './debug.js';
 
 const TWO_PI = Math.PI * 2;
@@ -19,6 +20,7 @@ export class Renderer {
     this.lifters = new LifterLayer(pal);
     this.water = new WaterLayer(pal);
     this.laundry = new LaundryLayer(cfg.physics);
+    this.foam = new FoamLayer(pal);
     this.gen = -1;
   }
 
@@ -31,7 +33,7 @@ export class Renderer {
       this.glass.rebuild(vp);
       this.drumBack.rebuild(vp);
     }
-    const { drum, world, water, time, frameDt } = state;
+    const { drum, world, water, foam, time, frameDt } = state;
     const dTheta = drum.omega * frameDt;
 
     vp.pixelTransform(ctx);
@@ -43,10 +45,11 @@ export class Renderer {
     ctx.arc(0, 0, 1, 0, TWO_PI);
     ctx.clip();
     this.drumBack.draw(ctx, drum.theta, dTheta, false);
-    this.water.drawBack(ctx, water, time);
+    this.water.drawBack(ctx, water, time, state.foamIntensity);
     this.laundry.draw(ctx, world, vp, true);
     this.water.drawFront(ctx, water, time);
     this.lifters.draw(ctx, drum.theta, dTheta, false);
+    this.foam.draw(ctx, foam, water);
     ctx.restore();
 
     vp.pixelTransform(ctx);
