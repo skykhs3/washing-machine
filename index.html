@@ -68,6 +68,12 @@
           <button type="button" id="water" aria-pressed="false" data-i18n="water">Water</button>
           <button type="button" id="skip" data-i18n="skip">Skip stage</button>
         </div>
+        <div class="row sound">
+          <button type="button" id="sound" aria-pressed="true" aria-label="Sound" data-i18n-label="sound">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="wave" d="M16 8.5a4.5 4.5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="slash" d="M3.5 3.5l17 17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          </button>
+          <input id="volume" type="range" min="0" max="100" step="5" value="60" aria-label="Volume" data-i18n-label="volume">
+        </div>
         <div class="row small">
           <button type="button" id="lang" aria-label="Switch language" data-i18n-label="switchLang">한국어</button>
           <a class="link" href="https://github.com/skykhs3/washing-machine" target="_blank" rel="noopener">GitHub</a>

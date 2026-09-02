@@ -15,6 +15,9 @@ export class World {
     this.wet = new Float32Array(N);
     this.cnx = new Float32Array(N);
     this.cny = new Float32Array(N);
+    this.impact = new Float32Array(N);
+    this.events = [];
+    this.agitation = 0;
     this.flag = new Uint8Array(N);
     this.bodyIdx = new Int16Array(N);
     this.gcol = new Int8Array(N);
@@ -102,6 +105,8 @@ export class World {
       alpha: 1,
       removing: false,
       wet: 0,
+      airTime: 0,
+      cooldown: 0,
     };
     this.bodies.push(body);
     this.count += tpl.n;
@@ -173,6 +178,7 @@ export class World {
         drum.collide(this, h, it === 0);
       }
       drum.applyContactVelocities(this, h, cfg.gravity);
+      this.collectImpacts(h, water);
       this.postStep();
     }
     this.time += dt;
@@ -222,8 +228,46 @@ export class World {
     }
   }
 
+  // Emits one event per body when it lands on the drum after time in the
+  // air; strength is the approach speed of the hardest-hitting particle.
+  collectImpacts(h, water) {
+    const { px, py, flag, impact } = this;
+    const ys = water.surfaceY;
+    const cosT = Math.cos(water.tilt);
+    const sinT = Math.sin(water.tilt);
+    for (const b of this.bodies) {
+      let contacts = 0;
+      let maxImp = 0;
+      let sx = 0;
+      let sy = 0;
+      const end = b.start + b.n;
+      for (let i = b.start; i < end; i++) {
+        if (flag[i]) contacts++;
+        if (impact[i] > maxImp) maxImp = impact[i];
+        sx += px[i];
+        sy += py[i];
+      }
+      b.cooldown -= h;
+      if (contacts === 0) {
+        b.airTime += h;
+        continue;
+      }
+      if (b.airTime >= 0.05 && maxImp > 1.5 && b.cooldown <= 0 && this.events.length < 32) {
+        const cx = sx / b.n;
+        const cy = sy / b.n;
+        const yr = -cx * sinT + cy * cosT;
+        const splash = water.active && yr > ys - 0.05;
+        if (!splash || maxImp > 3) {
+          this.events.push({ type: 'impact', strength: maxImp, wet: b.wet, splash });
+          b.cooldown = splash ? 0.6 : 0.4;
+        }
+      }
+      b.airTime = 0;
+    }
+  }
+
   integrate(h, water, g, omega) {
-    const { px, py, ppx, ppy, wet, radius, flag, count } = this;
+    const { px, py, ppx, ppy, wet, radius, flag, impact, count } = this;
     const cfg = this.cfg;
     const airK = Math.exp(-cfg.airDrag * h);
     const hasWater = water.active;
@@ -241,6 +285,8 @@ export class World {
     const wetRate = h / cfg.wetRate;
     const dryStep = h / cfg.dryRate;
     const h2 = h * h;
+    let agSum = 0;
+    let agN = 0;
 
     for (let i = 0; i < count; i++) {
       const x = px[i];
@@ -262,6 +308,8 @@ export class World {
           const ry = vy - wvy;
           const sp = Math.sqrt(rx * rx + ry * ry);
           const f = Math.exp(-c1 * s * h) / (1 + c2 * s * sp * h);
+          agSum += sp * s;
+          agN++;
           vx = wvx + rx * f;
           vy = wvy + ry * f;
           wet[i] += (1 - wet[i]) * wetRate * s;
@@ -286,7 +334,9 @@ export class World {
       px[i] = x + vx * h;
       py[i] = y + vy * h + ay * h2;
       flag[i] = 0;
+      impact[i] = 0;
     }
+    this.agitation = agN ? agSum / agN : 0;
   }
 
   solveDistance() {

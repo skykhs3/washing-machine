@@ -265,6 +265,34 @@ input[type="range"] {
   touch-action: pan-y;
 }
 
+.row.sound {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.row.sound > button {
+  flex: 0 0 46px;
+  min-height: 34px;
+  padding: 0;
+}
+
+.row.sound > input[type="range"] {
+  flex: 1 1 auto;
+  width: auto;
+  height: 34px;
+}
+
+#sound svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  vertical-align: middle;
+}
+
+#sound .slash { display: none; }
+#sound[aria-pressed="false"] .slash { display: block; }
+#sound[aria-pressed="false"] .wave { opacity: .3; }
+
 .link {
   display: inline-flex;
   align-items: center;

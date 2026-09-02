@@ -11,6 +11,8 @@ export function initPanel(root, app) {
     water: root.querySelector('#water'),
     skip: root.querySelector('#skip'),
     lang: root.querySelector('#lang'),
+    sound: root.querySelector('#sound'),
+    volume: root.querySelector('#volume'),
   };
 
   els.auto.addEventListener('click', () => app.setMode('auto'));
@@ -21,6 +23,8 @@ export function initPanel(root, app) {
   els.water.addEventListener('click', () => app.toggleWater());
   els.skip.addEventListener('click', () => app.skipStage());
   els.lang.addEventListener('click', () => app.toggleLang());
+  els.sound.addEventListener('click', () => app.toggleSound());
+  els.volume.addEventListener('input', () => app.setVolume(Number(els.volume.value) / 100));
 
   let lastRpm = -1;
   return {
@@ -34,6 +38,10 @@ export function initPanel(root, app) {
       els.water.setAttribute('aria-pressed', String(app.waterOn()));
       els.water.disabled = !manual;
       els.skip.disabled = manual;
+      els.sound.setAttribute('aria-pressed', String(s.sound.enabled));
+      const vol = Math.round(s.sound.volume * 100);
+      els.volume.value = String(vol);
+      els.volume.setAttribute('aria-valuetext', `${vol}%`);
       els.rpm.max = String(app.maxRpm());
       this.syncRpm(true);
     },

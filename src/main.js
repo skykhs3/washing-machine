@@ -7,6 +7,7 @@ import { Cycle } from './cycle.js';
 import { Foam } from './render/foam.js';
 import { Viewport } from './render/viewport.js';
 import { Renderer } from './render/renderer.js';
+import { AudioEngine } from './audio.js';
 import { detectLang, applyI18n, t, stageName } from './i18n.js';
 import { loadState, createSaver } from './ui/storage.js';
 import { initPanelToggle } from './ui/panelToggle.js';
@@ -34,6 +35,7 @@ const water = new Water(CONFIG.water);
 const cycle = new Cycle(CONFIG.cycle);
 const foam = new Foam(CONFIG.foam.max);
 const renderer = new Renderer(vp, CONFIG);
+const audio = new AudioEngine();
 
 const state = {
   mode: saved?.mode === 'manual' ? 'manual' : 'auto',
@@ -44,7 +46,13 @@ const state = {
     water: Boolean(saved?.manual?.water),
   },
   lang: detectLang(saved?.lang),
+  sound: {
+    enabled: saved?.sound?.enabled ?? true,
+    volume: clamp(Number(saved?.sound?.volume ?? 0.6) || 0, 0, 1),
+  },
 };
+audio.setEnabled(state.sound.enabled);
+audio.setVolume(state.sound.volume);
 
 const spawnQueue = [];
 let spawnTimer = 0;
@@ -57,6 +65,7 @@ const save = createSaver(() => ({
   mode: state.mode,
   manual: state.manual,
   lang: state.lang,
+  sound: state.sound,
 }));
 
 const app = {
@@ -154,7 +163,26 @@ const app = {
     save();
     refreshUi();
   },
+  toggleSound() {
+    state.sound.enabled = !state.sound.enabled;
+    audio.unlock();
+    audio.setEnabled(state.sound.enabled);
+    if (state.sound.enabled) audio.beep(1, 1568, 0);
+    save();
+    refreshUi();
+  },
+  setVolume(v) {
+    state.sound.volume = clamp(v, 0, 1);
+    audio.unlock();
+    audio.setVolume(state.sound.volume);
+    save();
+    refreshUi();
+  },
 };
+
+for (const ev of ['pointerdown', 'keydown', 'touchend', 'click']) {
+  window.addEventListener(ev, () => audio.unlock(), { passive: true });
+}
 
 const panel = initPanel(uiRoot, app);
 const picker = initLaundryPicker(uiRoot, app);
@@ -215,7 +243,12 @@ function simStep(dt) {
   water.update(dt, drum.omega);
   tickSpawn(dt);
   world.step(dt, drum, water);
+  if (state.mode === 'auto' && cycle.idx !== lastStageIdx) {
+    if (cycle.stage.id === 'done') audio.beep(3);
+    lastStageIdx = cycle.idx;
+  }
 }
+let lastStageIdx = cycle.idx;
 
 function foamIntensity() {
   if (state.mode === 'auto') return cycle.foamIntensity();
@@ -262,6 +295,19 @@ function frame(now) {
     if (steps === CONFIG.physics.maxStepsPerFrame) acc = 0;
   }
   const t1 = performance.now();
+
+  for (const e of world.events) audio.impact(e.strength, e.wet, e.splash);
+  world.events.length = 0;
+  audio.update(frameDt, {
+    rpm: motor.rpm,
+    level: water.level,
+    target: water.target,
+    waterActive: water.active,
+    swirl: water.swirl,
+    agitation: world.agitation,
+    load: world.liveCount,
+    paused: state.paused,
+  });
 
   const intensity = foamIntensity();
   const dtVisual = state.paused ? 0 : frameDt;
@@ -338,6 +384,6 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-if (DEBUG) window.__washer = { world, drum, motor, water, cycle, foam, state, app };
+if (DEBUG) window.__washer = { world, drum, motor, water, cycle, foam, state, app, audio };
 
 requestAnimationFrame(frame);
