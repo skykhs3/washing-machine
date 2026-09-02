@@ -37,6 +37,7 @@ export const CONFIG = {
     accelSpinDown: 1.5,
     accelManual: 6,
     maxRpm: 240,
+    reducedMotionMaxRpm: 90,
   },
 
   water: {
@@ -55,6 +56,7 @@ export const CONFIG = {
 
   laundry: {
     max: 20,
+    maxLow: 12,
     spawnInterval: 0.4,
     removeFade: 0.5,
     spawnY: -0.55,
@@ -102,7 +104,7 @@ export const CONFIG = {
     ],
   },
 
-  foam: { max: 60 },
+  foam: { max: 60, maxLow: 30 },
 
   palette: {
     bodyTop: '#3a3f47',

@@ -11,6 +11,7 @@ export function initPanel(root, app) {
     water: root.querySelector('#water'),
     skip: root.querySelector('#skip'),
     lang: root.querySelector('#lang'),
+    lowPower: root.querySelector('#lowPower'),
     sound: root.querySelector('#sound'),
     volume: root.querySelector('#volume'),
   };
@@ -23,6 +24,7 @@ export function initPanel(root, app) {
   els.water.addEventListener('click', () => app.toggleWater());
   els.skip.addEventListener('click', () => app.skipStage());
   els.lang.addEventListener('click', () => app.toggleLang());
+  els.lowPower.addEventListener('click', () => app.toggleLowPower());
   els.sound.addEventListener('click', () => app.toggleSound());
   els.volume.addEventListener('input', () => app.setVolume(Number(els.volume.value) / 100));
 
@@ -38,6 +40,7 @@ export function initPanel(root, app) {
       els.water.setAttribute('aria-pressed', String(app.waterOn()));
       els.water.disabled = !manual;
       els.skip.disabled = manual;
+      els.lowPower.setAttribute('aria-pressed', String(s.low));
       els.sound.setAttribute('aria-pressed', String(s.sound.enabled));
       const vol = Math.round(s.sound.volume * 100);
       els.volume.value = String(vol);

@@ -11,7 +11,8 @@
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <canvas id="scene"></canvas>
+  <canvas id="scene" role="img" aria-label="A front-loading drum washing machine running a wash cycle" data-i18n-label="canvasLabel"></canvas>
+  <div id="live" class="sr-only" aria-live="polite"></div>
 
   <div id="ui" class="ui">
     <button id="handle" class="handle" type="button" data-i18n="controls">Controls</button>
@@ -53,7 +54,7 @@
 
       <section class="group">
         <div class="group-head">
-          <div class="seg" data-i18n-label="mode">
+          <div class="seg" role="group" aria-label="Mode" data-i18n-label="mode">
             <button type="button" id="modeAuto" aria-pressed="true" data-i18n="auto">AUTO</button>
             <button type="button" id="modeManual" aria-pressed="false" data-i18n="manual">MANUAL</button>
           </div>
@@ -76,6 +77,7 @@
         </div>
         <div class="row small">
           <button type="button" id="lang" aria-label="Switch language" data-i18n-label="switchLang">한국어</button>
+          <button type="button" id="lowPower" aria-pressed="false" data-i18n="lowPower" data-i18n-title="lowPowerHint">Low graphics</button>
           <a class="link" href="https://github.com/skykhs3/washing-machine" target="_blank" rel="noopener">GitHub</a>
         </div>
       </section>

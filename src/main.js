@@ -8,7 +8,7 @@ import { Foam } from './render/foam.js';
 import { Viewport } from './render/viewport.js';
 import { Renderer } from './render/renderer.js';
 import { AudioEngine } from './audio.js';
-import { detectLang, applyI18n, t, stageName } from './i18n.js';
+import { STRINGS, detectLang, applyI18n, t, stageName } from './i18n.js';
 import { loadState, createSaver } from './ui/storage.js';
 import { initPanelToggle } from './ui/panelToggle.js';
 import { initCanvasTap } from './ui/input.js';
@@ -17,6 +17,7 @@ import { initPanel } from './ui/panel.js';
 
 const params = new URLSearchParams(location.search);
 const DEBUG = params.has('debug');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const DT = CONFIG.physics.dt;
 const TYPES = Object.keys(CONFIG.laundry.types);
 const DEFAULT_LOAD = ['tshirt', 'sock', 'towel', 'pants', 'tshirt', 'sock'];
@@ -26,6 +27,7 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const saved = loadState();
 const canvas = document.getElementById('scene');
 const uiRoot = document.getElementById('ui');
+const live = document.getElementById('live');
 
 const vp = new Viewport(canvas);
 const world = new World(CONFIG.physics, CONFIG.laundry);
@@ -37,6 +39,12 @@ const foam = new Foam(CONFIG.foam.max);
 const renderer = new Renderer(vp, CONFIG);
 const audio = new AudioEngine();
 
+if (reduceMotion) {
+  motor.maxRpm = CONFIG.motor.reducedMotionMaxRpm;
+  foam.still = true;
+}
+
+const lowHint = (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 4;
 const state = {
   mode: saved?.mode === 'manual' ? 'manual' : 'auto',
   paused: false,
@@ -46,6 +54,8 @@ const state = {
     water: Boolean(saved?.manual?.water),
   },
   lang: detectLang(saved?.lang),
+  low: saved?.quality ? saved.quality === 'low' : lowHint,
+  qualityUserSet: Boolean(saved?.quality),
   sound: {
     enabled: saved?.sound?.enabled ?? true,
     volume: clamp(Number(saved?.sound?.volume ?? 0.6) || 0, 0, 1),
@@ -66,12 +76,13 @@ const save = createSaver(() => ({
   manual: state.manual,
   lang: state.lang,
   sound: state.sound,
+  quality: state.qualityUserSet ? (state.low ? 'low' : 'high') : undefined,
 }));
 
 const app = {
   state,
   laundryMax() {
-    return CONFIG.laundry.max;
+    return state.low ? CONFIG.laundry.maxLow : CONFIG.laundry.max;
   },
   laundryCount() {
     return world.liveCount + spawnQueue.length;
@@ -163,6 +174,13 @@ const app = {
     save();
     refreshUi();
   },
+  toggleLowPower() {
+    state.low = !state.low;
+    state.qualityUserSet = true;
+    applyQuality();
+    save();
+    refreshUi();
+  },
   toggleSound() {
     state.sound.enabled = !state.sound.enabled;
     audio.unlock();
@@ -196,6 +214,7 @@ initCanvasTap(canvas, vp, (p) => {
   app.addLaundry(null, { x: p.x * k, y: p.y * k });
 });
 applyI18n(document, state.lang);
+applyQuality();
 
 const initial = Array.isArray(saved?.laundry) ? saved.laundry : DEFAULT_LOAD.map((type) => ({ type }));
 for (const item of initial.slice(0, app.laundryMax())) {
@@ -206,6 +225,16 @@ refreshUi();
 function refreshUi() {
   panel.refresh();
   picker.refresh();
+}
+
+function applyQuality() {
+  vp.setMaxDpr(state.low ? 1 : 2);
+  renderer.setLowQuality(state.low);
+  foam.max = state.low ? CONFIG.foam.maxLow : CONFIG.foam.max;
+  while (app.laundryCount() > app.laundryMax()) {
+    if (spawnQueue.length) spawnQueue.pop();
+    else world.removeLast();
+  }
 }
 
 function tickSpawn(dt) {
@@ -271,15 +300,27 @@ function hudInfo() {
   };
 }
 
+function formatTime(sec) {
+  const s = Math.ceil(sec);
+  const m = Math.floor(s / 60);
+  return `${m}:${String(s % 60).padStart(2, '0')}`;
+}
+
 const stats = { fps: 0, frameMs: 0, physMs: 0, substeps: 1 };
 let last = performance.now();
 let acc = 0;
+let rafId = 0;
 let uiTimer = 0;
+let liveTimer = 0;
 let fpsAcc = 0;
 let fpsCount = 0;
+let probeTime = 0;
+let probeAcc = 0;
+let probeCount = 0;
+let probed = false;
 
 function frame(now) {
-  requestAnimationFrame(frame);
+  rafId = requestAnimationFrame(frame);
   const frameDt = Math.min((now - last) / 1000, CONFIG.physics.maxFrameDt);
   last = now;
   const t0 = performance.now();
@@ -343,7 +384,42 @@ function frame(now) {
     uiTimer = 0;
     panel.syncRpm();
   }
+  liveTimer += frameDt;
+  if (liveTimer > 1) {
+    liveTimer = 0;
+    const say = STRINGS[state.lang]?.live ?? STRINGS.en.live;
+    live.textContent = say(info.paused ? info.pausedLabel : info.stageLabel, info.manual ? '-' : formatTime(info.remaining), Math.round(Math.abs(info.rpm)));
+  }
+
+  if (!probed && !state.qualityUserSet && !state.low) {
+    probeTime += frameDt;
+    if (probeTime > 1) {
+      probeAcc += frameDt;
+      probeCount++;
+    }
+    if (probeTime > 4) {
+      probed = true;
+      if (probeCount > 0 && probeAcc / probeCount > 0.022) {
+        state.low = true;
+        applyQuality();
+        refreshUi();
+      }
+    }
+  }
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    cancelAnimationFrame(rafId);
+    rafId = 0;
+    audio.suspend();
+  } else {
+    last = performance.now();
+    acc = 0;
+    audio.resume();
+    if (!rafId) rafId = requestAnimationFrame(frame);
+  }
+});
 
 window.addEventListener('keydown', (e) => {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -384,6 +460,6 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-if (DEBUG) window.__washer = { world, drum, motor, water, cycle, foam, state, app, audio };
+if (DEBUG) window.__washer = { world, drum, motor, water, cycle, state, app, audio };
 
-requestAnimationFrame(frame);
+rafId = requestAnimationFrame(frame);

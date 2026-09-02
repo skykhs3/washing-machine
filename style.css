@@ -46,6 +46,15 @@ body {
   touch-action: none;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 /* ---- overlay UI ---- */
 
 .ui {
@@ -306,3 +315,61 @@ input[type="range"] {
 }
 
 .link:hover { background: var(--btn-hover); color: var(--text); }
+
+/* ---- landscape: right sidebar ---- */
+
+@media (orientation: landscape) and (min-width: 700px) {
+  .ui {
+    left: auto;
+    top: 0;
+    width: 340px;
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) 0;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .panel {
+    width: 100%;
+    grid-template-columns: 1fr;
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+
+  .ui.hidden .panel { transform: translateX(12px); }
+
+  .handle {
+    left: auto;
+    right: max(12px, env(safe-area-inset-right));
+    transform: none;
+  }
+}
+
+/* ---- narrow portrait: single column ---- */
+
+@media (max-width: 600px) and (orientation: portrait), (max-width: 480px) {
+  .panel {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 6px 10px 8px;
+  }
+
+  .panel-head { min-height: 22px; margin-bottom: -6px; }
+  .group { gap: 6px; }
+  .group-head { min-height: 28px; }
+  button { min-height: 36px; }
+  .type { padding: 6px 4px 5px; }
+  .type svg { width: 20px; height: 20px; }
+  .row.small > button, .row.small > .link { min-height: 30px; }
+  .slider { gap: 2px; }
+  input[type="range"] { height: 28px; }
+  .row.sound > button, .row.sound > input[type="range"] { min-height: 32px; height: 32px; }
+}
+
+@media (max-width: 340px) {
+  .type span { display: none; }
+  .type svg { width: 20px; height: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui, .panel, .handle, button { transition: none; }
+}
