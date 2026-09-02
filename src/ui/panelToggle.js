@@ -20,9 +20,15 @@ export function initPanelToggle(ui, { closeButton, handle, dock, open, onReserve
   // what reserves height and what goes inert, not the handle alone.
   const collapsed = dock || handle;
 
-  const setInert = (hidden) => {
+  const setInert = () => {
+    const hidden = ui.classList.contains('hidden');
     if (panel) panel.inert = hidden;
-    collapsed.inert = !hidden;
+    // With the panel open the dock is faded out and sits under it, except in
+    // the sidebar layout where it stays visible clear of the panel, so only
+    // there does it stay live. Order matters: inert on the dock covers the
+    // handle inside it.
+    collapsed.inert = !hidden && !matchMedia(SIDEBAR).matches;
+    handle.inert = !hidden;
   };
 
   // Reports the top edge of whichever control is showing. A hidden panel keeps
@@ -37,7 +43,7 @@ export function initPanelToggle(ui, { closeButton, handle, dock, open, onReserve
 
   const apply = (hidden, notify) => {
     ui.classList.toggle('hidden', hidden);
-    setInert(hidden);
+    setInert();
     measure();
     if (notify && onChange) onChange(!hidden);
   };
@@ -55,11 +61,15 @@ export function initPanelToggle(ui, { closeButton, handle, dock, open, onReserve
   closeButton.addEventListener('click', hide);
   handle.addEventListener('click', show);
 
+  const relayout = () => {
+    setInert();
+    measure();
+  };
   const ro = new ResizeObserver(measure);
   if (panel) ro.observe(panel);
   ro.observe(collapsed);
-  window.addEventListener('resize', measure);
-  window.addEventListener('orientationchange', measure);
+  window.addEventListener('resize', relayout);
+  window.addEventListener('orientationchange', relayout);
 
   const crowded = () => {
     if (!panel || matchMedia(SIDEBAR).matches) return false;

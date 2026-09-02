@@ -14,13 +14,23 @@ const SEG = {
   '-': [0, 0, 0, 0, 0, 0, 1],
 };
 
+// Every element inside the console is sized from its height, so the height has
+// to be capped to what the width can actually hold. The clock is laid out from
+// the right edge inward, so once the contents overflow it walks off the left
+// side and lands on top of the stage label.
+const PER_HEIGHT = { withRpm: 4.1, timeOnly: 3 };
+
 export function hudRect(vp) {
   const band = vp.bandHeight;
-  const h = Math.round(band * 0.66);
-  const w = Math.round(Math.min(Math.max(150, vp.w * 0.5), 300));
+  const want = Math.round(band * 0.66);
+  // A taller band means a bigger machine, so let the console grow with it
+  // rather than pinning it at 300 and overflowing.
+  const w = Math.round(Math.min(Math.max(150, vp.w * 0.5), Math.max(300, want * 4)));
+  const showRpm = w >= 210;
+  const h = Math.min(want, Math.round(w / (showRpm ? PER_HEIGHT.withRpm : PER_HEIGHT.timeOnly)));
   const margin = Math.round(band * 0.2);
   const x = vp.sidebar ? Math.round(vp.cx - w / 2) : vp.w - w - margin;
-  return { x, y: Math.round((band - h) / 2), w, h };
+  return { x, y: Math.round((band - h) / 2), w, h, showRpm };
 }
 
 export class Hud {
@@ -38,7 +48,7 @@ export class Hud {
     const r = hudRect(vp);
     const sec = Math.ceil(info.remaining);
     const rpm = Math.round(Math.abs(info.rpm));
-    const key = [r.w, r.h, vp.dpr, info.stageLabel, info.modeLabel, info.paused, sec, rpm, info.phaseIndex, info.manual].join('|');
+    const key = [r.w, r.h, r.showRpm, vp.dpr, info.stageLabel, info.modeLabel, info.paused, sec, rpm, info.phaseIndex, info.manual].join('|');
     if (key !== this.key) {
       this.key = key;
       this.render(vp, r, info, sec, rpm);
@@ -75,7 +85,7 @@ export class Hud {
     g.fill();
 
     const pad = Math.round(h * 0.18);
-    const showRpm = w >= 210;
+    const showRpm = r.showRpm;
     const rpmW = showRpm ? Math.round(h * 0.95) : 0;
     const digitH = h * 0.46;
     const digitW = digitH * 0.52;
