@@ -54,6 +54,8 @@ export const CONFIG = {
   },
 
   laundry: {
+    max: 20,
+    spawnInterval: 0.4,
     removeFade: 0.5,
     spawnY: -0.55,
     types: {

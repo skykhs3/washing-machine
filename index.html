@@ -13,6 +13,68 @@
 <body>
   <canvas id="scene"></canvas>
 
+  <div id="ui" class="ui">
+    <button id="handle" class="handle" type="button">Controls</button>
+
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Controls</span>
+        <button id="hidePanel" class="close" type="button">&times;</button>
+      </div>
+      <section class="group">
+        <div class="group-head">
+          <h2>Laundry</h2>
+          <span id="count" class="badge">0 / 20</span>
+        </div>
+        <div class="row types">
+          <button type="button" class="type" data-add="tshirt">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3 4 6l2 4 2-1v12h8V9l2 1 2-4-4-3a4 4 0 0 1-8 0z"/></svg>
+            <span>T-shirt</span>
+          </button>
+          <button type="button" class="type" data-add="sock">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h7v10l3 3a4 4 0 0 1-6 5l-5-5V2zm0 3v6l6 6a1.5 1.5 0 0 0 2-2l-4-4V5H9z"/></svg>
+            <span>Sock</span>
+          </button>
+          <button type="button" class="type" data-add="towel">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM7 5v14h10V5zm1 3h8v2H8zm0 4h8v2H8z"/></svg>
+            <span>Towel</span>
+          </button>
+          <button type="button" class="type" data-add="pants">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12v20h-4l-2-9-2 9H6zm2 2v4h8V4z"/></svg>
+            <span>Pants</span>
+          </button>
+        </div>
+        <div class="row">
+          <button type="button" id="addRandom">Random</button>
+          <button type="button" id="removeLast">Remove</button>
+          <button type="button" id="clear">Empty</button>
+        </div>
+      </section>
+
+      <section class="group">
+        <div class="group-head">
+          <div class="seg">
+            <button type="button" id="modeAuto" aria-pressed="true">AUTO</button>
+            <button type="button" id="modeManual" aria-pressed="false">MANUAL</button>
+          </div>
+          <button type="button" id="pause" aria-pressed="false">Pause</button>
+        </div>
+        <label class="slider">
+          <span class="slider-label"><span>RPM</span> <output id="rpmOut" for="rpm">0</output></span>
+          <input id="rpm" type="range" min="0" max="240" step="5" value="0" aria-valuetext="0 RPM">
+        </label>
+        <div class="row">
+          <button type="button" id="dir" aria-pressed="false">Reverse</button>
+          <button type="button" id="water" aria-pressed="false">Water</button>
+          <button type="button" id="skip">Skip stage</button>
+        </div>
+        <div class="row small">
+          <a class="link" href="https://github.com/skykhs3/washing-machine" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </section>
+    </div>
+  </div>
+
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
