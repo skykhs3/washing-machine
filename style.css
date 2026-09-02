@@ -427,11 +427,18 @@ input[type="range"] {
 
   .ui.hidden .panel { transform: translateX(12px); }
 
+  /* The bottom strip is clear in this layout, so pause stays reachable with the
+     panel open; it only steps aside from the sidebar column. The handle is
+     redundant while the panel is showing. */
   .dock {
     left: auto;
-    right: max(12px, env(safe-area-inset-right));
+    right: calc(100% + 12px);
     transform: none;
+    opacity: 1;
   }
+
+  .ui.hidden .dock { right: max(12px, env(safe-area-inset-right)); }
+  .ui:not(.hidden) .handle { display: none; }
 }
 
 /* ---- narrow portrait: single column ---- */
