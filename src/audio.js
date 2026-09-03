@@ -48,6 +48,14 @@ const FILL_RES_HI = 1200;
 const PUMP_BLADE_HZ = 280;
 const PUMP_WHINE_HZ = 2100;
 
+// Suspension. A tub on soft springs sits at 3 to 5 Hz, so a spin ramps up
+// through its resonance, shakes hardest there, then quietens as it goes
+// supercritical and the tub starts to self-centre. RES_MECH is that speed as a
+// fraction of the top drum speed: 0.45 is 90 rpm here, which audioRpm maps to
+// 207 rpm, or 3.4 Hz. ZETA is the damping of the friction dampers.
+const RES_MECH = 0.45;
+const ZETA = 0.18;
+
 // A garment falling the full drum diameter lands at 12.5 drum units/s.
 const IMPACT_REF = 12.5;
 
@@ -56,6 +64,11 @@ const IMPACT_REF = 12.5;
 // incoherent-sum rule below and only a pathological burst is capped.
 const IMPACT_VOICES = 6;
 const IMPACT_WINDOW = 0.1;
+
+const smoothstep = (a, b, x) => {
+  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
 
 export class AudioEngine {
   constructor() {
@@ -309,6 +322,15 @@ export class AudioEngine {
       this.filter('lowpass', 6500, 0.7),
     ]);
 
+    // Air dragged round by the drum and sheared off the lifters. An edge
+    // dipole radiates as the cube of speed, so this is nothing at a tumble and
+    // the brightest thing in the machine at full extraction, which is what
+    // makes a real spin sound fast rather than merely loud.
+    this.air = this.bed(this.noiseSource(), [
+      this.filter('highpass', 700, 0.7),
+      this.filter('lowpass', 7500, 0.7),
+    ]);
+
     // Motor. Two partials whose pitch is strictly proportional to speed, with
     // sidebands from shaft eccentricity, so it reads as a machine rather than
     // a transposed synth tone.
@@ -369,12 +391,30 @@ export class AudioEngine {
     const rotHz = r / 60;
     const loadK = 0.4 + 0.6 * Math.min(1, s.load / 10);
 
-    // Imbalance force grows with the square of speed, which is what makes a
-    // spin-up grow instead of arriving at full level the moment it starts.
-    const rumbleLevel = Math.min(1.1, 0.9 * mech ** 2 * loadK);
+    // Imbalance force grows with the square of speed, but what reaches the
+    // cabinet is that force times the suspension transmissibility, which peaks
+    // where the drum rate meets the suspension resonance and falls away above
+    // it. So a spin-up swells as it passes through the resonance near 90 rpm,
+    // settles once it is running supercritical, and climbs again with speed,
+    // which is the shape a real extraction has.
+    const ratio = mech / RES_MECH;
+    const zr = 2 * ZETA * ratio;
+    const trans = Math.sqrt((1 + zr * zr) / ((1 - ratio * ratio) ** 2 + zr * zr));
+    const rumbleLevel = Math.min(1.1, loadK * mech * mech * (0.443 + 1.273 * trans));
     set(this.rumble.g.gain, rumbleLevel);
-    set(this.rumbleAm.depth.gain, rumbleLevel * 0.4 * Math.min(1, s.load / 6));
+    // Above resonance the tub centres itself on its own axis, so the once per
+    // revolution modulation collapses even as the level rises again. It has to
+    // go nearly all the way: the drum tops out at 200 rpm, so this runs at
+    // 3.3 Hz where a real extraction runs at 20 Hz, and modulation that slow is
+    // heard as separate swells, like waves, rather than as the roughness a real
+    // machine has. What survives is the slow lurch of the resonance passage,
+    // which is the part you really do hear.
+    const amFade = 1 - 0.85 * smoothstep(0.45, 0.85, mech);
+    set(this.rumbleAm.depth.gain, rumbleLevel * 0.4 * amFade * Math.min(1, s.load / 6));
     set(this.rumbleAm.osc.frequency, Math.max(0.05, rotHz), 0.2);
+    // Dull through the resonance, bright at the top: bearing and air noise
+    // reach further up the spectrum the faster the drum turns.
+    set(this.rumble.filters[0].frequency, RUMBLE_TOP * (0.55 + 0.45 * mech), 0.3);
     set(this.rumble.filters[1].frequency, CABINET_HZ * (1 + 0.1 * mech), 0.3);
 
     // Motor: proportional pitch, brightening with speed, sidebands at the
@@ -452,7 +492,12 @@ export class AudioEngine {
     // Spin extraction: water leaving a wet load through the drum holes.
     const wetness = s.wetness ?? 0;
     const extracting = s.waterActive ? 0 : Math.max(0, Math.min(1, (mech - 0.25) / 0.75));
-    set(this.spray.g.gain, 0.14 * extracting * wetness * loadK, 0.3);
+    set(this.spray.g.gain, 0.17 * extracting * wetness * loadK, 0.3);
+    // Droplets leave faster as the drum speeds up, so the spray brightens.
+    set(this.spray.filters[0].frequency, 1000 + 900 * mech, 0.3);
+
+    set(this.air.g.gain, 0.085 * mech ** 2.5 * (0.7 + 0.3 * loadK), 0.25);
+    set(this.air.filters[1].frequency, 2500 + 5000 * mech, 0.3);
   }
 
   // Incoherent sources add in power, so n simultaneous hits are each quieter
