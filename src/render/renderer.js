@@ -21,7 +21,7 @@ export class Renderer {
     this.drumBack = new DrumBackLayer(pal);
     this.lifters = new LifterLayer(pal);
     this.water = new WaterLayer(pal);
-    this.laundry = new LaundryLayer(cfg.physics);
+    this.laundry = new LaundryLayer();
     this.foam = new FoamLayer(pal);
     this.handle = new DoorHandleLayer(pal);
     this.hud = new Hud(pal);

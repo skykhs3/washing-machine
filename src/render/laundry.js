@@ -1,8 +1,7 @@
 const TILE = 16;
 
 export class LaundryLayer {
-  constructor(phys) {
-    this.rp = phys.particleRadius;
+  constructor() {
     this.patterns = new Map();
     this.rgbCache = new Map();
   }
@@ -98,7 +97,6 @@ export class LaundryLayer {
 
   draw(ctx, world, vp, usePatterns) {
     const { px, py } = world;
-    const rp = this.rp;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     for (const b of world.bodies) {
@@ -107,14 +105,18 @@ export class LaundryLayer {
       const wet = b.wet;
       const fill = this.shade(base, 0.32 * wet);
       const edge = this.shade(base, 0.42 + 0.2 * wet);
+      // Both trims are proportional to the piece, so a sock does not get the
+      // heavy outline a full size garment carries.
+      const rp = tpl.radius;
+      const sp = tpl.spacing;
 
       ctx.save();
       if (b.alpha < 1) ctx.globalAlpha = Math.max(0, b.alpha);
       this.outlinePath(ctx, world, b);
-      ctx.lineWidth = 2 * rp + 0.022;
+      ctx.lineWidth = 2 * rp + 0.22 * sp;
       ctx.strokeStyle = edge;
       ctx.stroke();
-      ctx.lineWidth = 2 * rp - 0.004;
+      ctx.lineWidth = 2 * rp - 0.04 * sp;
       ctx.strokeStyle = fill;
       ctx.fillStyle = fill;
       ctx.stroke();

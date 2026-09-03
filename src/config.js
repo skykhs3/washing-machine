@@ -62,12 +62,13 @@ export const CONFIG = {
     spawnY: -0.55,
     types: {
       tshirt: {
-        mask: ['#####', '.###.', '.###.', '.###.'],
+        mask: ['#######', '.#####.', '.#####.', '.#####.'],
         colors: ['#e8574f', '#3f8fd2', '#f2c14e', '#f5f1e8', '#6dbf8a'],
         pattern: 'stripes',
       },
       sock: {
-        mask: ['.##', '.##', '.##', '###'],
+        mask: ['..##', '..##', '####'],
+        scale: 0.62,
         colors: ['#f5f1e8', '#3a3f5c', '#7dc27a', '#f08a5d'],
         pattern: 'dots',
       },
@@ -77,7 +78,7 @@ export const CONFIG = {
         pattern: 'waffle',
       },
       pants: {
-        mask: ['#####', '#####', '##.##', '##.##'],
+        mask: ['#####', '#####', '##.##', '##.##', '##.##'],
         colors: ['#2f4f8a', '#4a6ea8', '#3d3d3d', '#7a5c3e'],
         pattern: 'denim',
       },
