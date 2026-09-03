@@ -1,82 +1,21 @@
-const TILE = 16;
+import { compileDesign, drawGarment, hexToRgb, shadeRgb } from './garment.js';
 
 export class LaundryLayer {
-  constructor(phys) {
-    this.rp = phys.particleRadius;
-    this.patterns = new Map();
-    this.rgbCache = new Map();
+  constructor() {
+    this.designs = new Map();
   }
 
-  rgb(hex) {
-    let v = this.rgbCache.get(hex);
-    if (!v) {
-      const n = parseInt(hex.slice(1), 16);
-      v = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-      this.rgbCache.set(hex, v);
+  // Marks are compiled against the template, so one compile per design serves
+  // every piece wearing it.
+  design(tpl, idx) {
+    const key = `${tpl.type}:${idx}`;
+    let entry = this.designs.get(key);
+    if (!entry) {
+      const design = tpl.designs[idx];
+      entry = { base: hexToRgb(design.base), groups: compileDesign(tpl, design) };
+      this.designs.set(key, entry);
     }
-    return v;
-  }
-
-  shade(hex, k) {
-    const [r, g, b] = this.rgb(hex);
-    const m = 1 - k;
-    return `rgb(${(r * m) | 0},${(g * m) | 0},${(b * m) | 0})`;
-  }
-
-  isLight(hex) {
-    const [r, g, b] = this.rgb(hex);
-    return 0.299 * r + 0.587 * g + 0.114 * b > 150;
-  }
-
-  pattern(ctx, kind, light) {
-    const key = kind + (light ? 'L' : 'D');
-    let p = this.patterns.get(key);
-    if (p) return p;
-    const c = document.createElement('canvas');
-    c.width = TILE;
-    c.height = TILE;
-    const g = c.getContext('2d');
-    const ink = light ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.75)';
-    g.fillStyle = ink;
-    g.strokeStyle = ink;
-    switch (kind) {
-      case 'stripes':
-        g.fillRect(0, 1, TILE, 3);
-        g.fillRect(0, 9, TILE, 3);
-        break;
-      case 'dots':
-        g.beginPath();
-        g.arc(4, 4, 2, 0, Math.PI * 2);
-        g.arc(12, 12, 2, 0, Math.PI * 2);
-        g.fill();
-        break;
-      case 'waffle':
-        g.lineWidth = 1.5;
-        g.beginPath();
-        g.moveTo(0, 4.5);
-        g.lineTo(TILE, 4.5);
-        g.moveTo(0, 12.5);
-        g.lineTo(TILE, 12.5);
-        g.moveTo(4.5, 0);
-        g.lineTo(4.5, TILE);
-        g.moveTo(12.5, 0);
-        g.lineTo(12.5, TILE);
-        g.stroke();
-        break;
-      default:
-        g.lineWidth = 1.5;
-        g.beginPath();
-        g.moveTo(-2, TILE + 2);
-        g.lineTo(TILE + 2, -2);
-        g.moveTo(-2, 10);
-        g.lineTo(10, -2);
-        g.moveTo(6, TILE + 2);
-        g.lineTo(TILE + 2, 6);
-        g.stroke();
-    }
-    p = ctx.createPattern(c, 'repeat');
-    this.patterns.set(key, p);
-    return p;
+    return entry;
   }
 
   outlinePath(ctx, world, b) {
@@ -96,45 +35,34 @@ export class LaundryLayer {
     ctx.closePath();
   }
 
-  draw(ctx, world, vp, usePatterns) {
-    const { px, py } = world;
-    const rp = this.rp;
+  draw(ctx, world, low) {
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     for (const b of world.bodies) {
       const tpl = b.tpl;
-      const base = tpl.colors[b.colorIdx % tpl.colors.length];
+      const { base, groups } = this.design(tpl, b.designIdx % tpl.designs.length);
       const wet = b.wet;
-      const fill = this.shade(base, 0.32 * wet);
-      const edge = this.shade(base, 0.42 + 0.2 * wet);
+      const fill = shadeRgb(base, 0.32 * wet);
+      const edge = shadeRgb(base, 0.42 + 0.2 * wet);
+      // Both trims are proportional to the piece, so a sock does not get the
+      // heavy outline a full size garment carries.
+      const rp = tpl.radius;
+      const sp = tpl.spacing;
 
       ctx.save();
       if (b.alpha < 1) ctx.globalAlpha = Math.max(0, b.alpha);
       this.outlinePath(ctx, world, b);
-      ctx.lineWidth = 2 * rp + 0.022;
+      ctx.lineWidth = 2 * rp + 0.22 * sp;
       ctx.strokeStyle = edge;
       ctx.stroke();
-      ctx.lineWidth = 2 * rp - 0.004;
+      ctx.lineWidth = 2 * rp - 0.04 * sp;
       ctx.strokeStyle = fill;
       ctx.fillStyle = fill;
       ctx.stroke();
       ctx.fill();
 
-      if (usePatterns) {
-        const a = b.start + tpl.refA;
-        const c = b.start + tpl.refB;
-        const ang = Math.atan2(py[c] - py[a], px[c] - px[a]) - tpl.restAngle;
-        const mx = (px[a] + px[c]) / 2;
-        const my = (py[a] + py[c]) / 2;
-        ctx.clip();
-        vp.pixelTransform(ctx);
-        ctx.translate(vp.cx + mx * vp.R, vp.cy + my * vp.R);
-        ctx.rotate(ang);
-        ctx.globalAlpha *= 0.32;
-        ctx.fillStyle = this.pattern(ctx, tpl.pattern, this.isLight(base));
-        const ext = tpl.extent * vp.R * 2.2;
-        ctx.fillRect(-ext, -ext, ext * 2, ext * 2);
-      }
+      ctx.clip();
+      drawGarment(ctx, world, b, groups, wet, low);
       ctx.restore();
     }
   }

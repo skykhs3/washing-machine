@@ -36,7 +36,11 @@ export class World {
     this.lastH = phys.dt;
     this.removeFade = laundry.removeFade;
     this.templates = buildTemplates(laundry.types, phys.spacing, phys.particleRadius);
-    this.hash = new SpatialHash(phys.particleRadius * 2 + 0.01, 1.1, N);
+    // Pieces carry their own particle radius, so the hash cell has to be sized
+    // from the largest of them or the 3x3 neighbour scan would miss contacts.
+    let maxR = 0;
+    for (const tpl of Object.values(this.templates)) maxR = Math.max(maxR, tpl.radius);
+    this.hash = new SpatialHash(maxR * 2 + 0.01, 1.1, N);
   }
 
   get liveBodies() {
@@ -58,14 +62,14 @@ export class World {
     );
   }
 
-  addBody(type, x, y, rot, colorIdx, vx = 0, vy = 0) {
+  addBody(type, x, y, rot, designIdx, vx = 0, vy = 0) {
     if (!this.canAdd(type)) return null;
     const tpl = this.templates[type];
     const start = this.count;
     const c = Math.cos(rot);
     const s = Math.sin(rot);
     const h = this.lastH;
-    const rp = this.cfg.particleRadius;
+    const rp = tpl.radius;
     const bi = this.bodies.length;
     for (let k = 0; k < tpl.n; k++) {
       const tx = tpl.pos[2 * k];
@@ -102,7 +106,7 @@ export class World {
       n: tpl.n,
       cStart,
       cN: tpl.constraints.length,
-      colorIdx,
+      designIdx,
       alpha: 1,
       removing: false,
       wet: 0,

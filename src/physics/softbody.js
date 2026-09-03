@@ -11,19 +11,23 @@ export function buildTemplate(type, def, spacing, particleRadius) {
   const h = rows.length;
   const w = Math.max(...rows.map((r) => r.length));
   const has = (c, r) => c >= 0 && r >= 0 && c < w && r < h && rows[r][c] === '#';
+  const scale = def.scale ?? 1;
+  const sp = spacing * scale;
+  const rp = particleRadius * scale;
 
   const cells = [];
-  const index = new Map();
+  // -1, not 0: 0 is a valid particle index.
+  const cellAt = new Int16Array(w * h).fill(-1);
   for (let r = 0; r < h; r++) {
     for (let c = 0; c < w; c++) {
       if (has(c, r)) {
-        index.set(r * w + c, cells.length);
+        cellAt[r * w + c] = cells.length;
         cells.push({ c, r });
       }
     }
   }
   const n = cells.length;
-  const id = (c, r) => index.get(r * w + c);
+  const id = (c, r) => cellAt[r * w + c];
 
   let sx = 0;
   let sy = 0;
@@ -39,45 +43,39 @@ export function buildTemplate(type, def, spacing, particleRadius) {
   const rws = new Int8Array(n);
   let extent = 0;
   cells.forEach(({ c, r }, i) => {
-    const x = (c - cx) * spacing;
-    const y = (r - cy) * spacing;
+    const x = (c - cx) * sp;
+    const y = (r - cy) * sp;
     pos[2 * i] = x;
     pos[2 * i + 1] = y;
     cols[i] = c;
     rws[i] = r;
-    extent = Math.max(extent, Math.hypot(x, y) + particleRadius);
+    extent = Math.max(extent, Math.hypot(x, y) + rp);
   });
 
   const constraints = [];
-  const diag = spacing * Math.SQRT2;
+  const diag = sp * Math.SQRT2;
   cells.forEach(({ c, r }, i) => {
-    if (has(c + 1, r)) constraints.push({ a: i, b: id(c + 1, r), rest: spacing, shear: false });
-    if (has(c, r + 1)) constraints.push({ a: i, b: id(c, r + 1), rest: spacing, shear: false });
+    if (has(c + 1, r)) constraints.push({ a: i, b: id(c + 1, r), rest: sp, shear: false });
+    if (has(c, r + 1)) constraints.push({ a: i, b: id(c, r + 1), rest: sp, shear: false });
     if (has(c + 1, r + 1)) constraints.push({ a: i, b: id(c + 1, r + 1), rest: diag, shear: true });
     if (has(c - 1, r + 1)) constraints.push({ a: i, b: id(c - 1, r + 1), rest: diag, shear: true });
   });
 
-  const outline = traceOutline(has, cells, w);
-
-  const row0 = cells.map((cell, i) => ({ cell, i })).filter(({ cell }) => cell.r === 0);
-  const refA = row0[0].i;
-  const refB = row0[row0.length - 1].i;
-  const restAngle = Math.atan2(pos[2 * refB + 1] - pos[2 * refA + 1], pos[2 * refB] - pos[2 * refA]);
-
   return {
     type,
     n,
+    w,
+    h,
+    cellAt,
     pos,
     cols,
     rows: rws,
     constraints,
-    outline,
-    refA,
-    refB,
-    restAngle,
+    outline: traceOutline(has, cells, w),
     extent,
-    colors: def.colors,
-    pattern: def.pattern,
+    spacing: sp,
+    radius: rp,
+    designs: def.designs,
   };
 }
 

@@ -20,7 +20,7 @@ const DEBUG = params.has('debug');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const DT = CONFIG.physics.dt;
 const TYPES = Object.keys(CONFIG.laundry.types);
-const DEFAULT_LOAD = ['tshirt', 'sock', 'towel', 'pants', 'tshirt', 'sock'];
+const DEFAULT_LOAD = ['tshirt', 'sock', 'sock', 'towel', 'pants', 'tshirt'];
 
 const DEFAULT_VOLUME = 0.6;
 
@@ -75,8 +75,8 @@ let spawnTimer = 0;
 
 const save = createSaver(() => ({
   laundry: [
-    ...world.liveBodies.map((b) => ({ type: b.type, colorIdx: b.colorIdx })),
-    ...spawnQueue.map((q) => ({ type: q.type, colorIdx: q.colorIdx })),
+    ...world.liveBodies.map((b) => ({ type: b.type, designIdx: b.designIdx })),
+    ...spawnQueue.map((q) => ({ type: q.type, designIdx: q.designIdx })),
   ],
   mode: state.mode,
   manual: state.manual,
@@ -94,6 +94,9 @@ const app = {
   laundryCount() {
     return world.liveCount + spawnQueue.length;
   },
+  piecesFor(type) {
+    return CONFIG.laundry.types[type]?.pieces ?? 1;
+  },
   maxRpm() {
     return motor.maxRpm;
   },
@@ -110,20 +113,33 @@ const app = {
   soundReady() {
     return !audio.needsGesture;
   },
-  addLaundry(type, colorIdx) {
-    if (this.laundryCount() >= this.laundryMax()) return;
+  // One press of a button. Socks go in as a pair sharing a design, so they
+  // look like a pair, and the count is clamped to whatever room is left.
+  addLaundry(type) {
     const kind = type && TYPES.includes(type) ? type : TYPES[Math.floor(Math.random() * TYPES.length)];
-    const colors = CONFIG.laundry.types[kind].colors;
-    spawnQueue.push({
-      type: kind,
-      colorIdx: colorIdx ?? Math.floor(Math.random() * colors.length),
-    });
+    const def = CONFIG.laundry.types[kind];
+    const n = Math.min(def.pieces ?? 1, this.laundryMax() - this.laundryCount());
+    if (n <= 0) return;
+    const designIdx = Math.floor(Math.random() * def.designs.length);
+    for (let i = 0; i < n; i++) spawnQueue.push({ type: kind, designIdx });
+    save();
+    refreshUi();
+  },
+  // Exactly one piece. Restoring a saved load goes through here: sending it
+  // through addLaundry would double every pair on each reload.
+  queuePiece(type, designIdx) {
+    if (!TYPES.includes(type) || this.laundryCount() >= this.laundryMax()) return;
+    const def = CONFIG.laundry.types[type];
+    const idx = Number.isInteger(designIdx) ? designIdx : Math.floor(Math.random() * def.designs.length);
+    spawnQueue.push({ type, designIdx: idx });
     save();
     refreshUi();
   },
   removeLast() {
-    if (spawnQueue.length) spawnQueue.pop();
-    else world.removeLast();
+    const type = tailType();
+    if (!removePiece()) return;
+    // A pair comes out together; an odd one left behind leaves on its own.
+    if (type && (CONFIG.laundry.types[type].pieces ?? 1) > 1 && tailType() === type) removePiece();
     save();
     refreshUi();
   },
@@ -174,7 +190,12 @@ const app = {
     refreshUi();
   },
   skipStage() {
-    if (state.mode === 'auto') cycle.skip();
+    if (state.mode !== 'auto') return;
+    // Finish what the stage was doing to the water before leaving it, so
+    // skipping a fill lands on a full tub instead of carrying the fill into
+    // the next stage, and skipping a drain lands on an empty one.
+    water.level = cycle.targetLevel();
+    cycle.skip();
   },
   toggleLang() {
     state.lang = state.lang === 'ko' ? 'en' : 'ko';
@@ -263,9 +284,9 @@ initCanvasTap(canvas, vp, (tap) => {
 applyI18n(document, state.lang);
 applyQuality();
 
-const initial = Array.isArray(saved?.laundry) ? saved.laundry : DEFAULT_LOAD.map((type) => ({ type }));
+const initial = Array.isArray(saved?.laundry) ? saved.laundry : defaultLoad();
 for (const item of initial.slice(0, app.laundryMax())) {
-  app.addLaundry(item.type, item.colorIdx);
+  app.queuePiece(item.type, item.designIdx ?? item.colorIdx);
 }
 if (state.sound.enabled) audio.unlock();
 refreshUi();
@@ -287,6 +308,38 @@ function applyQuality() {
   }
 }
 
+// A run of the same multi-piece type in the starting load is one set, so it
+// shares a design; otherwise the socks a first visit opens with would not match
+// the way an added pair does.
+function defaultLoad() {
+  const out = [];
+  let designIdx = 0;
+  let run = 0;
+  DEFAULT_LOAD.forEach((type, i) => {
+    const def = CONFIG.laundry.types[type];
+    run = i > 0 && DEFAULT_LOAD[i - 1] === type && run + 1 < (def.pieces ?? 1) ? run + 1 : 0;
+    if (run === 0) designIdx = Math.floor(Math.random() * def.designs.length);
+    out.push({ type, designIdx });
+  });
+  return out;
+}
+
+function tailType() {
+  if (spawnQueue.length) return spawnQueue[spawnQueue.length - 1].type;
+  for (let i = world.bodies.length - 1; i >= 0; i--) {
+    if (!world.bodies[i].removing) return world.bodies[i].type;
+  }
+  return null;
+}
+
+function removePiece() {
+  if (spawnQueue.length) {
+    spawnQueue.pop();
+    return true;
+  }
+  return world.removeLast();
+}
+
 function tickSpawn(dt) {
   spawnTimer -= dt;
   if (spawnTimer > 0 || !spawnQueue.length) return;
@@ -302,7 +355,7 @@ function tickSpawn(dt) {
     x = (x / r) * maxR;
     y = (y / r) * maxR;
   }
-  world.addBody(item.type, x, y, Math.random() * Math.PI * 2, item.colorIdx, Math.random() - 0.5, 1);
+  world.addBody(item.type, x, y, Math.random() * Math.PI * 2, item.designIdx, Math.random() - 0.5, 1);
   spawnTimer = CONFIG.laundry.spawnInterval;
   refreshUi();
 }

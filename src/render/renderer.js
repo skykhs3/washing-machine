@@ -21,7 +21,7 @@ export class Renderer {
     this.drumBack = new DrumBackLayer(pal);
     this.lifters = new LifterLayer(pal);
     this.water = new WaterLayer(pal);
-    this.laundry = new LaundryLayer(cfg.physics);
+    this.laundry = new LaundryLayer();
     this.foam = new FoamLayer(pal);
     this.handle = new DoorHandleLayer(pal);
     this.hud = new Hud(pal);
@@ -72,7 +72,7 @@ export class Renderer {
     ctx.clip();
     this.drumBack.draw(ctx, drum.theta, dTheta, this.low);
     this.water.drawBack(ctx, water, time, foam.volume);
-    this.laundry.draw(ctx, world, vp, !this.low);
+    this.laundry.draw(ctx, world, this.low);
     this.foam.drawBulk(ctx, foam, water);
     this.water.drawFront(ctx, water, time);
     this.lifters.draw(ctx, drum.theta, dTheta, this.low);

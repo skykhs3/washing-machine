@@ -41,8 +41,20 @@ const PANEL_MODES = [104, 179];
 const FILL_RES_LO = 150;
 const FILL_RES_HI = 1200;
 
-// Drain pump: 6 vanes at about 2800 rpm.
+// Drain pump: 6 vanes at about 2800 rpm. What makes a pump identifiable is
+// not the blade rate but the motor whine a couple of harmonics above its slot
+// passing frequency (24 slots at 2800 rpm is about 1120 Hz), over broadband
+// turbulence from the volute and the corrugated hose.
 const PUMP_BLADE_HZ = 280;
+const PUMP_WHINE_HZ = 2100;
+
+// Suspension. A tub on soft springs sits at 3 to 5 Hz, so a spin ramps up
+// through its resonance, shakes hardest there, then quietens as it goes
+// supercritical and the tub starts to self-centre. RES_MECH is that speed as a
+// fraction of the top drum speed: 0.45 is 90 rpm here, which audioRpm maps to
+// 207 rpm, or 3.4 Hz. ZETA is the damping of the friction dampers.
+const RES_MECH = 0.45;
+const ZETA = 0.18;
 
 // A garment falling the full drum diameter lands at 12.5 drum units/s.
 const IMPACT_REF = 12.5;
@@ -52,6 +64,11 @@ const IMPACT_REF = 12.5;
 // incoherent-sum rule below and only a pathological burst is capped.
 const IMPACT_VOICES = 6;
 const IMPACT_WINDOW = 0.1;
+
+const smoothstep = (a, b, x) => {
+  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
 
 export class AudioEngine {
   constructor() {
@@ -195,7 +212,7 @@ export class AudioEngine {
       node = f;
     }
     node.connect(g);
-    g.connect(this.master);
+    g.connect(this.bus);
     return { g, filters };
   }
 
@@ -221,6 +238,13 @@ export class AudioEngine {
     comp.ratio.value = 4;
     this.master.connect(comp);
     comp.connect(c.destination);
+
+    // Everything the machine makes on its own runs through this bus, so a
+    // pause can mute all of it with one gain. Sounds that answer a tap stay on
+    // the master, or the door grip and the console would go dead while paused.
+    this.bus = c.createGain();
+    this.bus.gain.value = 1;
+    this.bus.connect(this.master);
 
     const len = c.sampleRate * NOISE_SECONDS;
     const buf = c.createBuffer(1, len, c.sampleRate);
@@ -260,22 +284,25 @@ export class AudioEngine {
       this.filter('bandpass', 2200, 0.8),
     ]);
 
-    // Drain pump: blade-passing noise plus the tonal impeller whine that makes
-    // a pump identifiable.
+    // Drain pump. The blade rate is a throb behind the sound, not the sound
+    // itself: a narrow band on it reads as a low hum, where a real pump is a
+    // high whirr. So the blade filter is left wide and quiet and the turbulence
+    // in the volute and the corrugated hose, which is where the energy of a
+    // real one sits, carries it.
     this.drain = this.bed(this.noiseSource(), [
-      this.filter('bandpass', PUMP_BLADE_HZ, 3),
+      this.filter('bandpass', PUMP_BLADE_HZ, 1.4),
       this.filter('peaking', PUMP_BLADE_HZ * 2, 4, 6),
     ]);
     this.drainFlow = this.bed(this.noiseSource(), [
-      this.filter('highpass', 300, 0.7),
-      this.filter('lowpass', 3200, 0.7),
-      this.filter('peaking', 700, 1.2, 5),
+      this.filter('highpass', 700, 0.7),
+      this.filter('lowpass', 5200, 0.7),
+      this.filter('peaking', 1900, 0.9, 6),
     ]);
     this.pumpWhine = c.createGain();
     this.pumpWhine.gain.value = 0;
-    const pumpBand = this.filter('bandpass', PUMP_BLADE_HZ * 5, 1.2);
-    this.pumpWhine.connect(pumpBand);
-    pumpBand.connect(this.master);
+    this.pumpBand = this.filter('bandpass', PUMP_WHINE_HZ, 0.9);
+    this.pumpWhine.connect(this.pumpBand);
+    this.pumpBand.connect(this.bus);
     this.pumpOscs = [];
     for (const mult of [4, 6]) {
       const osc = c.createOscillator();
@@ -293,6 +320,15 @@ export class AudioEngine {
     this.spray = this.bed(this.noiseSource(), [
       this.filter('highpass', 1400, 0.7),
       this.filter('lowpass', 6500, 0.7),
+    ]);
+
+    // Air dragged round by the drum and sheared off the lifters. An edge
+    // dipole radiates as the cube of speed, so this is nothing at a tumble and
+    // the brightest thing in the machine at full extraction, which is what
+    // makes a real spin sound fast rather than merely loud.
+    this.air = this.bed(this.noiseSource(), [
+      this.filter('highpass', 700, 0.7),
+      this.filter('lowpass', 7500, 0.7),
     ]);
 
     // Motor. Two partials whose pitch is strictly proportional to speed, with
@@ -321,13 +357,32 @@ export class AudioEngine {
     const c = this.ctx;
     const t = c.currentTime;
     const set = (param, value, tc = 0.12) => param.setTargetAtTime(value, t, tc);
-    const beds = [this.rumble, this.slosh, this.fill, this.fillJet, this.drain,
-      this.drainFlow, this.spray, this.whine];
+
+    const filling = s.target > s.level + 0.005;
+    const draining = s.target < s.level - 0.005;
+    if (this.wasFilling === null) {
+      this.wasFilling = filling;
+      this.wasDraining = draining;
+    }
+
     if (s.paused) {
-      for (const b of beds) set(b.g.gain, 0);
-      set(this.pumpWhine.gain, 0);
+      // The AM depths feed the bed gain AudioParams directly, and a param's
+      // value is its own plus everything connected to it, so zeroing the beds
+      // would leave the LFOs still swinging them. Muting the bus covers every
+      // bed at once, including any added later.
+      set(this.bus.gain, 0, 0.02);
+      set(this.rumbleAm.depth.gain, 0, 0.02);
+      set(this.whineAm.depth.gain, 0, 0.02);
+      // A stage can still be skipped while paused, so take on whatever the
+      // water did; otherwise resuming would fire a valve or pump one-shot for
+      // a transition that already happened.
+      this.wasFilling = filling;
+      this.wasDraining = draining;
+      // Bed levels are left where they are rather than pulled to zero, so
+      // resuming is immediate instead of fading back in.
       return;
     }
+    set(this.bus.gain, 1, 0.05);
 
     const r = Math.abs(s.rpm);
     const ar = AudioEngine.audioRpm(s.rpm);
@@ -336,12 +391,30 @@ export class AudioEngine {
     const rotHz = r / 60;
     const loadK = 0.4 + 0.6 * Math.min(1, s.load / 10);
 
-    // Imbalance force grows with the square of speed, which is what makes a
-    // spin-up grow instead of arriving at full level the moment it starts.
-    const rumbleLevel = Math.min(1.1, 0.9 * mech ** 2 * loadK);
+    // Imbalance force grows with the square of speed, but what reaches the
+    // cabinet is that force times the suspension transmissibility, which peaks
+    // where the drum rate meets the suspension resonance and falls away above
+    // it. So a spin-up swells as it passes through the resonance near 90 rpm,
+    // settles once it is running supercritical, and climbs again with speed,
+    // which is the shape a real extraction has.
+    const ratio = mech / RES_MECH;
+    const zr = 2 * ZETA * ratio;
+    const trans = Math.sqrt((1 + zr * zr) / ((1 - ratio * ratio) ** 2 + zr * zr));
+    const rumbleLevel = Math.min(1.1, loadK * mech * mech * (0.443 + 1.273 * trans));
     set(this.rumble.g.gain, rumbleLevel);
-    set(this.rumbleAm.depth.gain, rumbleLevel * 0.4 * Math.min(1, s.load / 6));
+    // Above resonance the tub centres itself on its own axis, so the once per
+    // revolution modulation collapses even as the level rises again. It has to
+    // go nearly all the way: the drum tops out at 200 rpm, so this runs at
+    // 3.3 Hz where a real extraction runs at 20 Hz, and modulation that slow is
+    // heard as separate swells, like waves, rather than as the roughness a real
+    // machine has. What survives is the slow lurch of the resonance passage,
+    // which is the part you really do hear.
+    const amFade = 1 - 0.85 * smoothstep(0.45, 0.85, mech);
+    set(this.rumbleAm.depth.gain, rumbleLevel * 0.4 * amFade * Math.min(1, s.load / 6));
     set(this.rumbleAm.osc.frequency, Math.max(0.05, rotHz), 0.2);
+    // Dull through the resonance, bright at the top: bearing and air noise
+    // reach further up the spectrum the faster the drum turns.
+    set(this.rumble.filters[0].frequency, RUMBLE_TOP * (0.55 + 0.45 * mech), 0.3);
     set(this.rumble.filters[1].frequency, CABINET_HZ * (1 + 0.1 * mech), 0.3);
 
     // Motor: proportional pitch, brightening with speed, sidebands at the
@@ -374,12 +447,6 @@ export class AudioEngine {
     );
     set(this.slosh.filters[2].frequency, BUBBLE_PEAK * (0.8 + 0.5 * motion), 0.15);
 
-    const filling = s.target > s.level + 0.005;
-    const draining = s.target < s.level - 0.005;
-    if (this.wasFilling === null) {
-      this.wasFilling = filling;
-      this.wasDraining = draining;
-    }
     if (filling !== this.wasFilling) {
       if (filling) this.valveOpen();
       else this.valveClose();
@@ -402,13 +469,15 @@ export class AudioEngine {
     set(this.fillJet.g.gain, filling ? 0.075 * (1 - 0.65 * fillFrac) : 0, 0.25);
 
     // Drain: the pump loads up as the tub empties and starts pulling air, so
-    // it gets louder and higher rather than fading out.
+    // it gets louder and rougher rather than fading out. The flow noise and the
+    // motor whine lead, and the blade throb sits under them at about a fifth of
+    // the level it used to, which is where a real pump puts it.
     const empty = 1 - Math.min(1, s.level / 0.12);
-    set(this.drain.g.gain, draining ? 1.5 * (1.1 + 0.4 * empty) : 0, 0.2);
-    set(this.drainFlow.g.gain, draining ? 0.1 * (1.1 + 0.45 * empty) : 0, 0.2);
-    set(this.pumpWhine.gain, draining ? 0.05 * (1.15 + 0.5 * empty) : 0, 0.2);
+    set(this.drain.g.gain, draining ? 0.22 * (1.05 + 0.35 * empty) : 0, 0.2);
+    set(this.drainFlow.g.gain, draining ? 0.12 * (1 + 0.6 * empty) : 0, 0.2);
+    set(this.pumpWhine.gain, draining ? 0.08 * (1.1 + 0.55 * empty) : 0, 0.2);
     for (const p of this.pumpOscs) {
-      set(p.osc.frequency, PUMP_BLADE_HZ * p.mult * (1 + 0.12 * empty), 0.2);
+      set(p.osc.frequency, PUMP_BLADE_HZ * p.mult * (1 + 0.04 * empty), 0.2);
     }
     if (draining && empty > 0.35) {
       this.gurgleTimer -= dt;
@@ -423,7 +492,12 @@ export class AudioEngine {
     // Spin extraction: water leaving a wet load through the drum holes.
     const wetness = s.wetness ?? 0;
     const extracting = s.waterActive ? 0 : Math.max(0, Math.min(1, (mech - 0.25) / 0.75));
-    set(this.spray.g.gain, 0.14 * extracting * wetness * loadK, 0.3);
+    set(this.spray.g.gain, 0.17 * extracting * wetness * loadK, 0.3);
+    // Droplets leave faster as the drum speeds up, so the spray brightens.
+    set(this.spray.filters[0].frequency, 1000 + 900 * mech, 0.3);
+
+    set(this.air.g.gain, 0.085 * mech ** 2.5 * (0.7 + 0.3 * loadK), 0.25);
+    set(this.air.filters[1].frequency, 2500 + 5000 * mech, 0.3);
   }
 
   // Incoherent sources add in power, so n simultaneous hits are each quieter
@@ -439,7 +513,7 @@ export class AudioEngine {
 
   // A damped sinusoid is what a resonant mode actually radiates. Fixed
   // frequency with a little scatter per hit, never a downward glide.
-  mode(freq, amp, decay, t, type = 'sine') {
+  mode(freq, amp, decay, t, type = 'sine', out = this.bus) {
     const c = this.ctx;
     const osc = c.createOscillator();
     osc.type = type;
@@ -448,12 +522,12 @@ export class AudioEngine {
     g.gain.setValueAtTime(amp, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
     osc.connect(g);
-    g.connect(this.master);
+    g.connect(out);
     osc.start(t);
     osc.stop(t + decay + 0.02);
   }
 
-  burst(t, { type = 'bandpass', freq, q = 1, amp, decay, sweepTo = 0, grain = 0.35 }) {
+  burst(t, { type = 'bandpass', freq, q = 1, amp, decay, sweepTo = 0, grain = 0.35 }, out = this.bus) {
     const c = this.ctx;
     const src = c.createBufferSource();
     src.buffer = this.noiseBuffer;
@@ -467,13 +541,13 @@ export class AudioEngine {
     g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
     src.connect(f);
     f.connect(g);
-    g.connect(this.master);
+    g.connect(out);
     src.start(t, Math.random() * (NOISE_SECONDS - grain), grain);
   }
 
-  // A bubble entrained by a splash rings at the Minnaert frequency and glides
-  // up as it shrinks. This is what separates a splash from a noise burst.
-  bubble(t, freq, amp) {
+  // A bubble rings at the Minnaert frequency and glides up as it shrinks. This
+  // is what separates air breaking into the pump from a plain noise burst.
+  bubble(t, freq, amp, out = this.bus) {
     const c = this.ctx;
     const osc = c.createOscillator();
     osc.type = 'sine';
@@ -484,12 +558,15 @@ export class AudioEngine {
     g.gain.setValueAtTime(amp, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
     osc.connect(g);
-    g.connect(this.master);
+    g.connect(out);
     osc.start(t);
     osc.stop(t + decay + 0.02);
   }
 
   impact(strength, wet, splash) {
+    // Laundry going under the surface is left silent. The foam still takes the
+    // air it entrains; only the sound is dropped.
+    if (splash) return;
     if (!this.ctx || !this.master || !this.enabled) return;
     const c = this.ctx;
     const crowd = this.impactCrowd(c.currentTime);
@@ -498,18 +575,6 @@ export class AudioEngine {
     const t = c.currentTime + Math.random() * 0.012;
     const k = Math.min(1, strength / IMPACT_REF);
     const amp = (0.16 + 0.5 * k) * crowd;
-
-    if (splash) {
-      // Broadband crown, then the bubbles it entrained.
-      this.burst(t, { freq: 1800, q: 0.5, amp: amp * 0.8, decay: 0.09 + 0.06 * k });
-      this.burst(t, { type: 'highpass', freq: 2400, amp: amp * 0.25, decay: 0.05 });
-      const n = 2 + Math.floor(Math.random() * 3);
-      for (let i = 0; i < n; i++) {
-        const at = t + Math.random() * 0.09;
-        this.bubble(at, 800 + Math.random() * 3200, amp * (0.1 + 0.16 * Math.random()));
-      }
-      return;
-    }
 
     // Wet cloth is heavier and much more damped: darker slap, shorter ring.
     const slapHz = 1300 - 600 * wet;
@@ -561,7 +626,7 @@ export class AudioEngine {
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
     osc.connect(f);
     f.connect(g);
-    g.connect(this.master);
+    g.connect(this.bus);
     osc.start(t);
     osc.stop(t + 0.36);
   }
@@ -580,7 +645,7 @@ export class AudioEngine {
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
     osc.connect(f);
     f.connect(g);
-    g.connect(this.master);
+    g.connect(this.bus);
     osc.start(t);
     osc.stop(t + 0.44);
     this.mode(160, 0.1, 0.09, t, 'triangle');
@@ -599,6 +664,10 @@ export class AudioEngine {
       decay: 0.05 + Math.random() * 0.1,
       grain: 0.2,
     });
+    // Cavities collapsing against the impeller are impulsive and reach well
+    // above the flow noise, which is what makes the end of a drain read as a
+    // pump struggling rather than as water sloshing.
+    this.burst(t, { type: 'highpass', freq: 3200, amp: amp * 0.45, decay: 0.03, grain: 0.1 });
     const n = 1 + Math.floor(Math.random() * 3);
     for (let i = 0; i < n; i++) {
       this.bubble(t + Math.random() * 0.06, 400 + Math.random() * 1100, amp * 0.35);
@@ -620,9 +689,9 @@ export class AudioEngine {
   latch() {
     if (!this.ctx || !this.master || !this.enabled) return;
     const t = this.ctx.currentTime;
-    this.burst(t, { freq: 2600, q: 1.1, amp: 0.34, decay: 0.022, grain: 0.08 });
-    this.mode(305, 0.16, 0.05, t, 'triangle');
-    this.mode(PANEL_MODES[1], 0.08, 0.07, t);
+    this.burst(t, { freq: 2600, q: 1.1, amp: 0.34, decay: 0.022, grain: 0.08 }, this.master);
+    this.mode(305, 0.16, 0.05, t, 'triangle', this.master);
+    this.mode(PANEL_MODES[1], 0.08, 0.07, t, 'sine', this.master);
   }
 
   // Membrane key on the console: short and soft, two partials under a lowpass.
