@@ -10,12 +10,12 @@ export function initLaundryPicker(root, app) {
   return {
     refresh() {
       count.textContent = `${app.laundryCount()} / ${app.laundryMax()}`;
-      // Socks go in two at a time, so their button needs room for the pair.
-      const room = app.laundryMax() - app.laundryCount();
+      // Every button costs one item, a pair of socks included, but a sock left
+      // without a pair can still be matched up in a full drum.
       root.querySelectorAll('[data-add]').forEach((b) => {
-        b.disabled = app.piecesFor(b.dataset.add) > room;
+        b.disabled = !app.hasRoomFor(b.dataset.add);
       });
-      root.querySelector('#addRandom').disabled = room <= 0;
+      root.querySelector('#addRandom').disabled = app.laundryCount() >= app.laundryMax();
     },
   };
 }

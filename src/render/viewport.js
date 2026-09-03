@@ -51,7 +51,9 @@ export class Viewport {
     if (this.sidebar) {
       const avail = w - SIDEBAR_WIDTH;
       this.R = Math.min(0.38 * h, 0.25 * w, 0.42 * avail);
-      this.cx = Math.min(w / 2, avail - this.R * 1.3);
+      // Far enough left of the sidebar for the grip at full pull and its
+      // shadow, which reach 1.38 drum radii.
+      this.cx = Math.min(w / 2, avail - this.R * 1.38);
       this.cy = 0.53 * h;
     } else {
       // Portrait, and phone landscape where the panel is a bottom sheet.
@@ -60,11 +62,12 @@ export class Viewport {
       // panel actually gives the drum the space back.
       const top = this.bandHeight;
       const avail = Math.max(80, h - this.reserved - top);
-      // The door is not symmetric: the surround reaches 1.19 drum radii to the
-      // left but the grip and its shadow reach about 1.295 to the right. Size
-      // and offset for that span so neither side runs off the screen.
-      this.R = Math.min(0.385 * w, 0.4 * h, avail / 2.42);
-      this.cx = w / 2 - 0.05 * this.R;
+      // The door is not symmetric: the hinge tabs reach 1.235 drum radii to
+      // the left, while on the right the grip at full pull, its shadow and the
+      // blur under it reach about 1.38. Size and offset for that span so
+      // neither side runs off the screen.
+      this.R = Math.min(0.378 * w, 0.4 * h, avail / 2.42);
+      this.cx = w / 2 - 0.072 * this.R;
       this.cy = top + avail / 2;
     }
     this.generation++;

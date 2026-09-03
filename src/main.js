@@ -95,10 +95,14 @@ const app = {
     return state.low ? CONFIG.laundry.maxLow : CONFIG.laundry.max;
   },
   laundryCount() {
-    return world.liveCount + spawnQueue.length;
+    return itemsIn(pieceTally());
   },
-  piecesFor(type) {
-    return CONFIG.laundry.types[type]?.pieces ?? 1;
+  // A piece that completes a pair costs no item, so the second sock goes in
+  // even when the drum is otherwise full.
+  hasRoomFor(type) {
+    const tally = pieceTally();
+    tally[type] = (tally[type] ?? 0) + 1;
+    return itemsIn(tally) <= this.laundryMax();
   },
   maxRpm() {
     return motor.maxRpm;
@@ -119,22 +123,21 @@ const app = {
   soundInvite() {
     return soundInvite;
   },
-  // One press of a button. Socks go in as a pair sharing a design, so they
-  // look like a pair, and the count is clamped to whatever room is left.
+  // One press of a button, one item. Socks go in as a pair sharing a design,
+  // so they look like a pair, and the pair goes in whole or not at all.
   addLaundry(type) {
     const kind = type && TYPES.includes(type) ? type : TYPES[Math.floor(Math.random() * TYPES.length)];
+    if (!this.hasRoomFor(kind)) return;
     const def = CONFIG.laundry.types[kind];
-    const n = Math.min(def.pieces ?? 1, this.laundryMax() - this.laundryCount());
-    if (n <= 0) return;
     const designIdx = Math.floor(Math.random() * def.designs.length);
-    for (let i = 0; i < n; i++) spawnQueue.push({ type: kind, designIdx });
+    for (let i = 0; i < (def.pieces ?? 1); i++) spawnQueue.push({ type: kind, designIdx });
     save();
     refreshUi();
   },
   // Exactly one piece. Restoring a saved load goes through here: sending it
   // through addLaundry would double every pair on each reload.
   queuePiece(type, designIdx) {
-    if (!TYPES.includes(type) || this.laundryCount() >= this.laundryMax()) return;
+    if (!TYPES.includes(type) || !this.hasRoomFor(type)) return;
     const def = CONFIG.laundry.types[type];
     const idx = Number.isInteger(designIdx) ? designIdx : Math.floor(Math.random() * def.designs.length);
     spawnQueue.push({ type, designIdx: idx });
@@ -301,7 +304,9 @@ applyI18n(document, state.lang);
 applyQuality();
 
 const initial = Array.isArray(saved?.laundry) ? saved.laundry : defaultLoad();
-for (const item of initial.slice(0, app.laundryMax())) {
+// Saved loads are stored as pieces, and the cap is in items, so let
+// queuePiece turn the rest away rather than cutting the list to length.
+for (const item of initial) {
   app.queuePiece(item.type, item.designIdx ?? item.colorIdx);
 }
 if (state.sound.enabled) audio.unlock();
@@ -337,6 +342,23 @@ function defaultLoad() {
     out.push({ type, designIdx });
   });
   return out;
+}
+
+// Items, not pieces: socks go in and come out a pair at a time, so a pair
+// counts once, and an odd sock left behind still counts once.
+function pieceTally() {
+  const n = {};
+  for (const b of world.bodies) if (!b.removing) n[b.type] = (n[b.type] ?? 0) + 1;
+  for (const q of spawnQueue) n[q.type] = (n[q.type] ?? 0) + 1;
+  return n;
+}
+
+function itemsIn(tally) {
+  let total = 0;
+  for (const type in tally) {
+    total += Math.ceil(tally[type] / (CONFIG.laundry.types[type].pieces ?? 1));
+  }
+  return total;
 }
 
 function tailType() {
