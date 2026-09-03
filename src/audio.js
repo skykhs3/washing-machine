@@ -41,8 +41,12 @@ const PANEL_MODES = [104, 179];
 const FILL_RES_LO = 150;
 const FILL_RES_HI = 1200;
 
-// Drain pump: 6 vanes at about 2800 rpm.
+// Drain pump: 6 vanes at about 2800 rpm. What makes a pump identifiable is
+// not the blade rate but the motor whine a couple of harmonics above its slot
+// passing frequency (24 slots at 2800 rpm is about 1120 Hz), over broadband
+// turbulence from the volute and the corrugated hose.
 const PUMP_BLADE_HZ = 280;
+const PUMP_WHINE_HZ = 2100;
 
 // A garment falling the full drum diameter lands at 12.5 drum units/s.
 const IMPACT_REF = 12.5;
@@ -267,22 +271,25 @@ export class AudioEngine {
       this.filter('bandpass', 2200, 0.8),
     ]);
 
-    // Drain pump: blade-passing noise plus the tonal impeller whine that makes
-    // a pump identifiable.
+    // Drain pump. The blade rate is a throb behind the sound, not the sound
+    // itself: a narrow band on it reads as a low hum, where a real pump is a
+    // high whirr. So the blade filter is left wide and quiet and the turbulence
+    // in the volute and the corrugated hose, which is where the energy of a
+    // real one sits, carries it.
     this.drain = this.bed(this.noiseSource(), [
-      this.filter('bandpass', PUMP_BLADE_HZ, 3),
+      this.filter('bandpass', PUMP_BLADE_HZ, 1.4),
       this.filter('peaking', PUMP_BLADE_HZ * 2, 4, 6),
     ]);
     this.drainFlow = this.bed(this.noiseSource(), [
-      this.filter('highpass', 300, 0.7),
-      this.filter('lowpass', 3200, 0.7),
-      this.filter('peaking', 700, 1.2, 5),
+      this.filter('highpass', 700, 0.7),
+      this.filter('lowpass', 5200, 0.7),
+      this.filter('peaking', 1900, 0.9, 6),
     ]);
     this.pumpWhine = c.createGain();
     this.pumpWhine.gain.value = 0;
-    const pumpBand = this.filter('bandpass', PUMP_BLADE_HZ * 5, 1.2);
-    this.pumpWhine.connect(pumpBand);
-    pumpBand.connect(this.bus);
+    this.pumpBand = this.filter('bandpass', PUMP_WHINE_HZ, 0.9);
+    this.pumpWhine.connect(this.pumpBand);
+    this.pumpBand.connect(this.bus);
     this.pumpOscs = [];
     for (const mult of [4, 6]) {
       const osc = c.createOscillator();
@@ -422,13 +429,15 @@ export class AudioEngine {
     set(this.fillJet.g.gain, filling ? 0.075 * (1 - 0.65 * fillFrac) : 0, 0.25);
 
     // Drain: the pump loads up as the tub empties and starts pulling air, so
-    // it gets louder and higher rather than fading out.
+    // it gets louder and rougher rather than fading out. The flow noise and the
+    // motor whine lead, and the blade throb sits under them at about a fifth of
+    // the level it used to, which is where a real pump puts it.
     const empty = 1 - Math.min(1, s.level / 0.12);
-    set(this.drain.g.gain, draining ? 1.5 * (1.1 + 0.4 * empty) : 0, 0.2);
-    set(this.drainFlow.g.gain, draining ? 0.1 * (1.1 + 0.45 * empty) : 0, 0.2);
-    set(this.pumpWhine.gain, draining ? 0.05 * (1.15 + 0.5 * empty) : 0, 0.2);
+    set(this.drain.g.gain, draining ? 0.22 * (1.05 + 0.35 * empty) : 0, 0.2);
+    set(this.drainFlow.g.gain, draining ? 0.12 * (1 + 0.6 * empty) : 0, 0.2);
+    set(this.pumpWhine.gain, draining ? 0.08 * (1.1 + 0.55 * empty) : 0, 0.2);
     for (const p of this.pumpOscs) {
-      set(p.osc.frequency, PUMP_BLADE_HZ * p.mult * (1 + 0.12 * empty), 0.2);
+      set(p.osc.frequency, PUMP_BLADE_HZ * p.mult * (1 + 0.04 * empty), 0.2);
     }
     if (draining && empty > 0.35) {
       this.gurgleTimer -= dt;
@@ -619,6 +628,10 @@ export class AudioEngine {
       decay: 0.05 + Math.random() * 0.1,
       grain: 0.2,
     });
+    // Cavities collapsing against the impeller are impulsive and reach well
+    // above the flow noise, which is what makes the end of a drain read as a
+    // pump struggling rather than as water sloshing.
+    this.burst(t, { type: 'highpass', freq: 3200, amp: amp * 0.45, decay: 0.03, grain: 0.1 });
     const n = 1 + Math.floor(Math.random() * 3);
     for (let i = 0; i < n; i++) {
       this.bubble(t + Math.random() * 0.06, 400 + Math.random() * 1100, amp * 0.35);
