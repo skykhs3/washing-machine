@@ -12,7 +12,7 @@ Soft-body laundry tumbles, soaks, and gets flung against the drum wall during sp
 ## Features
 
 - Full standard cotton course (about 57 minutes) that runs on its own: fill → wash → drain → short spin → two rinses with the same drain and short spin → 10 minute final spin → done, then repeats. The LED shows the time left in the course
-- Add T-shirts, socks, towels, and pants, up to 20 pieces. Each type comes in several designs drawn as real garment parts, collars, armhole and side seams, chest stripes, contrast sleeves, waistbands and cuffs, woven towel borders, ribbed sock cuffs and toe caps. Socks go in and come out a pair at a time
+- Add T-shirts, socks, towels, and pants, up to 20 items. Each type comes in several designs drawn as real garment parts, collars, armhole and side seams, chest stripes, contrast sleeves, waistbands and cuffs, woven towel borders, ribbed sock cuffs and toe caps. Socks go in and come out a pair at a time, and a pair counts as one item
 - Water level, tilted water surface, foam, and buoyancy for anything under the surface
 - Manual mode with an RPM slider, direction toggle, water toggle, and pause
 - Procedural sound driven by the physics, calibrated against the balance of a real front loader: broadband rumble that carries the spin, water in the bubble band pulsed as the lifters scoop it, a fill whose Helmholtz resonance climbs three octaves as the tub fills, a drain pump led by its flow noise and impeller whine with the gurgle and cavitation of air breaking in, water flung out of a wet load during extraction, inlet valve clicks and the water hammer of the valve closing, the door interlock, thuds when laundry lands, and an end-of-cycle beep. It starts muted; the speaker button next to pause turns it on, and the panel has a volume slider
@@ -114,7 +114,7 @@ MIT
 ## 주요 기능
 
 - 표준 면 코스(약 57분)가 알아서 돌아갑니다. 급수 → 세탁 → 배수 → 짧은 탈수 → 같은 배수와 짧은 탈수를 붙인 헹굼 두 번 → 10분 최종 탈수 → 종료, 그리고 다시 처음부터. LED에는 코스의 남은 시간이 뜹니다
-- 티셔츠, 양말, 수건, 바지를 최대 20개까지 넣을 수 있습니다. 종류마다 디자인이 여러 개 있고, 반복 무늬가 아니라 실제 옷의 부위를 그립니다. 칼라, 진동과 옆 솔기, 가슴 줄무늬, 색이 다른 소매, 허리 밴드와 밑단, 수건의 짜임 테두리, 양말의 골지 목과 발끝 보강. 양말은 한 쌍씩 들어가고 한 쌍씩 나옵니다
+- 티셔츠, 양말, 수건, 바지를 최대 20개까지 넣을 수 있습니다. 종류마다 디자인이 여러 개 있고, 반복 무늬가 아니라 실제 옷의 부위를 그립니다. 칼라, 진동과 옆 솔기, 가슴 줄무늬, 색이 다른 소매, 허리 밴드와 밑단, 수건의 짜임 테두리, 양말의 골지 목과 발끝 보강. 양말은 한 쌍씩 들어가고 한 쌍씩 나오며, 한 쌍을 하나로 셉니다
 - 수위, 기울어지는 수면, 거품, 그리고 수면 아래 물체에 걸리는 부력
 - RPM 슬라이더, 역회전, 급수, 일시정지를 직접 만지는 수동 모드
 - 물리 상태가 그대로 소리가 됩니다. 실제 드럼 세탁기의 음량 균형에 맞춰 보정했습니다. 탈수를 끌고 가는 광대역 저음, 리프터가 물을 퍼 올릴 때마다 기포 대역에서 맥동하는 물소리, 통이 차오르며 Helmholtz 공진이 세 옥타브 올라가는 급수음, 흐름 잡음과 임펠러 소리가 이끌고 공기가 섞여 들며 꾸르륵거리는 배수 펌프, 탈수 중 젖은 빨래에서 튀어 나가는 물, 급수 밸브의 딸깍임과 밸브가 닫힐 때의 수격, 문 잠금, 빨래가 떨어지는 둔탁한 소리, 코스가 끝날 때의 알림음까지 있습니다. 소리는 꺼진 채로 시작합니다. 일시정지 옆의 스피커 버튼으로 켜고, 크기는 조작 패널의 볼륨 슬라이더로 맞춥니다
