@@ -30,9 +30,12 @@ const saved = loadState();
 const canvas = document.getElementById('scene');
 const uiRoot = document.getElementById('ui');
 const live = document.getElementById('live');
-const soundHint = document.getElementById('soundHint');
-// Whether the "tap for sound" chip is up. null forces the next poll to sync it.
-let hintShown = null;
+// Whether the sound buttons are showing the blocked state. null forces the
+// next poll to sync them.
+let soundBlocked = null;
+// A first visit starts muted, so the speaker itself has to say sound can be
+// turned on. Touching sound at all takes the invitation down.
+let soundInvite = !saved?.sound;
 
 const vp = new Viewport(canvas);
 const world = new World(CONFIG.physics, CONFIG.laundry);
@@ -63,7 +66,7 @@ const state = {
   low: saved?.quality ? saved.quality === 'low' : lowHint,
   qualityUserSet: Boolean(saved?.quality),
   sound: {
-    enabled: saved?.sound?.enabled ?? true,
+    enabled: saved?.sound?.enabled ?? false,
     volume: clamp(Number(saved?.sound?.volume ?? DEFAULT_VOLUME) || 0, 0, 1),
   },
 };
@@ -112,6 +115,9 @@ const app = {
   },
   soundReady() {
     return !audio.needsGesture;
+  },
+  soundInvite() {
+    return soundInvite;
   },
   // One press of a button. Socks go in as a pair sharing a design, so they
   // look like a pair, and the count is clamped to whatever room is left.
@@ -211,6 +217,16 @@ const app = {
     refreshUi();
   },
   toggleSound() {
+    soundInvite = false;
+    // While the output is blocked the button reads as muted, so a press there
+    // asks for sound rather than for silence. The window gesture listener may
+    // already have resumed the context by now, so this goes by what the user
+    // actually saw rather than by the live state.
+    if (soundBlocked) {
+      audio.unlock();
+      refreshUi();
+      return;
+    }
     state.sound.enabled = !state.sound.enabled;
     // Unmuting with the slider at zero would be a dead end, so give it a level.
     if (state.sound.enabled && state.sound.volume === 0) {
@@ -224,6 +240,7 @@ const app = {
     refreshUi();
   },
   setVolume(v) {
+    soundInvite = false;
     state.sound.volume = clamp(v, 0, 1);
     // Reaching for the volume is a request to hear something, so it takes the
     // mute off; dragging all the way down is the same as muting.
@@ -244,7 +261,7 @@ for (const ev of ['pointerdown', 'keydown', 'touchend', 'click']) {
   window.addEventListener(ev, () => audio.unlock(), { passive: true });
 }
 audio.onStateChange = () => {
-  hintShown = null;
+  soundBlocked = null;
 };
 
 const panel = initPanel(uiRoot, app);
@@ -294,8 +311,7 @@ refreshUi();
 function refreshUi() {
   panel.refresh();
   picker.refresh();
-  hintShown = state.sound.enabled && audio.needsGesture;
-  soundHint.classList.toggle('show', hintShown);
+  soundBlocked = state.sound.enabled && audio.needsGesture;
 }
 
 function applyQuality() {
@@ -501,7 +517,7 @@ function frame(now) {
   if (uiTimer > 0.1) {
     uiTimer = 0;
     panel.syncRpm();
-    if (hintShown !== (state.sound.enabled && audio.needsGesture)) refreshUi();
+    if (soundBlocked !== (state.sound.enabled && audio.needsGesture)) refreshUi();
   }
   liveTimer += frameDt;
   if (liveTimer > 1) {

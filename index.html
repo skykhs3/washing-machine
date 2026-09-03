@@ -14,17 +14,19 @@
   <canvas id="scene" role="img" aria-label="A front-loading drum washing machine running a wash cycle" data-i18n-label="canvasLabel"></canvas>
   <div id="live" class="sr-only" aria-live="polite"></div>
 
-  <div id="soundHint" class="sound-hint" role="status">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a4.5 4.5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    <span data-i18n="soundHint">Tap anywhere to turn on sound</span>
-  </div>
-
   <div id="ui" class="ui">
     <div id="dock" class="dock">
       <button id="quickPause" class="quick" type="button" aria-pressed="false" aria-label="Pause" data-i18n-label="pause">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path class="ic-pause" d="M8 5h3v14H8zm5 0h3v14h-3z"/>
           <path class="ic-play" d="M8 5l11 7-11 7z"/>
+        </svg>
+      </button>
+      <button id="quickSound" class="quick sound-btn" type="button" aria-pressed="false" aria-label="Sound" data-i18n-label="sound">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9v6h4l5 4V5L8 9H4z"/>
+          <path class="wave" d="M16 8.5a4.5 4.5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path class="slash" d="M3.5 3.5l17 17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
         </svg>
       </button>
       <button id="handle" class="handle" type="button" data-i18n="controls">Controls</button>
@@ -83,7 +85,7 @@
           <button type="button" id="skip" data-i18n="skip">Skip stage</button>
         </div>
         <div class="row sound">
-          <button type="button" id="sound" aria-pressed="true" aria-label="Sound" data-i18n-label="sound" data-i18n-title="muteSwitchHint">
+          <button type="button" id="sound" class="sound-btn" aria-pressed="false" aria-label="Sound" data-i18n-label="sound" data-i18n-title="muteSwitchHint">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="wave" d="M16 8.5a4.5 4.5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="slash" d="M3.5 3.5l17 17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
           </button>
           <input id="volume" type="range" min="0" max="100" step="5" value="60" aria-label="Volume" data-i18n-label="volume">

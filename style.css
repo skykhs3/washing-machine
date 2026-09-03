@@ -55,56 +55,6 @@ body {
   white-space: nowrap;
 }
 
-/* ---- sound hint ---- */
-
-.sound-hint {
-  pointer-events: none;
-  position: fixed;
-  left: 50%;
-  top: max(56px, 16%);
-  transform: translateX(-50%);
-  z-index: 3;
-  display: none;
-  align-items: center;
-  gap: 9px;
-  max-width: calc(100vw - 20px);
-  padding: 12px 22px;
-  border-radius: 999px;
-  background: var(--panel);
-  border: 1px solid rgba(95, 242, 200, 0.35);
-  color: var(--text);
-  font-size: 16px;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.45);
-  animation: hint-pulse 2.4s ease-in-out infinite;
-}
-
-.sound-hint.show { display: inline-flex; }
-
-.sound-hint svg {
-  flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
-  fill: var(--accent);
-}
-
-@media (max-width: 380px) {
-  .sound-hint {
-    padding: 10px 16px;
-    font-size: 14px;
-  }
-
-  .sound-hint svg { width: 18px; height: 18px; }
-}
-
-@keyframes hint-pulse {
-  0%, 100% { opacity: .78; }
-  50% { opacity: 1; }
-}
-
 /* ---- overlay UI ---- */
 
 .ui {
@@ -372,24 +322,55 @@ input[type="range"] {
   height: 34px;
 }
 
-#sound svg {
+.sound-btn svg {
   width: 20px;
   height: 20px;
   fill: currentColor;
   vertical-align: middle;
 }
 
-#sound .slash { display: none; }
-#sound[aria-pressed="false"] .slash,
-#sound[data-blocked="true"] .slash { display: block; }
-#sound[aria-pressed="false"] .wave,
-#sound[data-blocked="true"] .wave { opacity: .3; }
+.sound-btn .slash { display: none; }
+.sound-btn[aria-pressed="false"] .slash,
+.sound-btn[data-blocked="true"] .slash { display: block; }
+.sound-btn[aria-pressed="false"] .wave,
+.sound-btn[data-blocked="true"] .wave { opacity: .3; }
 
 /* Sound is wanted but the output is still blocked, so the button must not read
    as active: an accent fill behind a mute slash says two opposite things. */
 #sound[data-blocked="true"] {
   background: var(--btn);
   color: var(--text);
+}
+
+/* The volume bar agrees with the icon: whenever the slash is up, nothing is
+   coming out, so the bar reads as inactive. It stays operable, because pulling
+   it up is one of the two ways back to sound. */
+.row.sound > .sound-btn[aria-pressed="false"] ~ input[type="range"],
+.row.sound > .sound-btn[data-blocked="true"] ~ input[type="range"] {
+  accent-color: var(--muted);
+  opacity: .5;
+}
+
+/* The dock copy carries no accent fill: a permanently green speaker would
+   compete with pause for attention, so its state reads from the icon alone. */
+#quickSound[aria-pressed="true"],
+#quickSound[data-blocked="true"] {
+  background: var(--panel);
+  color: var(--text);
+}
+
+#quickSound[aria-pressed="false"] { color: var(--muted); }
+
+/* Sound starts off, so the speaker has to say it can be turned on. The same
+   beat covers an output that is still blocked. */
+.sound-btn[data-blocked="true"],
+#quickSound[data-invite="true"] {
+  animation: sound-attention 2.4s ease-in-out infinite;
+}
+
+@keyframes sound-attention {
+  0%, 100% { opacity: .78; }
+  50% { opacity: 1; }
 }
 
 .link {
@@ -469,5 +450,5 @@ input[type="range"] {
 
 @media (prefers-reduced-motion: reduce) {
   .ui, .panel, .dock, button { transition: none; }
-  .sound-hint { animation: none; }
+  .sound-btn { animation: none; }
 }

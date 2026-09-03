@@ -15,6 +15,7 @@ export function initPanel(root, app) {
     sound: root.querySelector('#sound'),
     volume: root.querySelector('#volume'),
     quickPause: root.querySelector('#quickPause'),
+    quickSound: root.querySelector('#quickSound'),
   };
 
   els.auto.addEventListener('click', () => app.setMode('auto'));
@@ -28,6 +29,7 @@ export function initPanel(root, app) {
   els.lang.addEventListener('click', () => app.toggleLang());
   els.lowPower.addEventListener('click', () => app.toggleLowPower());
   els.sound.addEventListener('click', () => app.toggleSound());
+  els.quickSound.addEventListener('click', () => app.toggleSound());
   els.volume.addEventListener('input', () => app.setVolume(Number(els.volume.value) / 100));
 
   let lastRpm = -1;
@@ -45,10 +47,15 @@ export function initPanel(root, app) {
       els.water.disabled = !manual;
       els.skip.disabled = manual;
       els.lowPower.setAttribute('aria-pressed', String(s.low));
-      els.sound.setAttribute('aria-pressed', String(s.sound.enabled));
       // aria-pressed stays the user's intent; the slash also shows when the
-      // output is still blocked and needs a gesture.
-      els.sound.dataset.blocked = String(s.sound.enabled && !app.soundReady());
+      // output is still blocked and needs a gesture. The dock copy and the
+      // panel copy always read the same.
+      const blocked = String(s.sound.enabled && !app.soundReady());
+      for (const el of [els.sound, els.quickSound]) {
+        el.setAttribute('aria-pressed', String(s.sound.enabled));
+        el.dataset.blocked = blocked;
+      }
+      els.quickSound.dataset.invite = String(app.soundInvite());
       const vol = Math.round(s.sound.volume * 100);
       els.volume.value = String(vol);
       els.volume.setAttribute('aria-valuetext', `${vol}%`);
