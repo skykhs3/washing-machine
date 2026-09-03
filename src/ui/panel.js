@@ -28,8 +28,23 @@ export function initPanel(root, app) {
   els.skip.addEventListener('click', () => app.skipStage());
   els.lang.addEventListener('click', () => app.toggleLang());
   els.lowPower.addEventListener('click', () => app.toggleLowPower());
-  els.sound.addEventListener('click', () => app.toggleSound());
-  els.quickSound.addEventListener('click', () => app.toggleSound());
+  // A press while the output is blocked asks for sound rather than for silence,
+  // and that has to be read at pointerdown. The window gesture listener resumes
+  // the context before the click lands, and the poll can repaint the button in
+  // between, so by click time nothing left says the press began on a slash.
+  // Keyboard activation sends no pointerdown, hence the fallback.
+  const bindSound = (el) => {
+    let blocked = null;
+    el.addEventListener('pointerdown', () => {
+      blocked = el.dataset.blocked === 'true';
+    });
+    el.addEventListener('click', () => {
+      app.toggleSound(blocked ?? el.dataset.blocked === 'true');
+      blocked = null;
+    });
+  };
+  bindSound(els.sound);
+  bindSound(els.quickSound);
   els.volume.addEventListener('input', () => app.setVolume(Number(els.volume.value) / 100));
 
   let lastRpm = -1;
