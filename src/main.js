@@ -174,7 +174,12 @@ const app = {
     refreshUi();
   },
   skipStage() {
-    if (state.mode === 'auto') cycle.skip();
+    if (state.mode !== 'auto') return;
+    // Finish what the stage was doing to the water before leaving it, so
+    // skipping a fill lands on a full tub instead of carrying the fill into
+    // the next stage, and skipping a drain lands on an empty one.
+    water.level = cycle.targetLevel();
+    cycle.skip();
   },
   toggleLang() {
     state.lang = state.lang === 'ko' ? 'en' : 'ko';
