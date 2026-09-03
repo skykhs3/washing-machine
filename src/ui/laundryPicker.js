@@ -10,10 +10,12 @@ export function initLaundryPicker(root, app) {
   return {
     refresh() {
       count.textContent = `${app.laundryCount()} / ${app.laundryMax()}`;
-      const full = app.laundryCount() >= app.laundryMax();
-      root.querySelectorAll('[data-add], #addRandom').forEach((b) => {
-        b.disabled = full;
+      // Socks go in two at a time, so their button needs room for the pair.
+      const room = app.laundryMax() - app.laundryCount();
+      root.querySelectorAll('[data-add]').forEach((b) => {
+        b.disabled = app.piecesFor(b.dataset.add) > room;
       });
+      root.querySelector('#addRandom').disabled = room <= 0;
     },
   };
 }

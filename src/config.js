@@ -128,6 +128,7 @@ export const CONFIG = {
       sock: {
         mask: ['..##', '..##', '####'],
         scale: 0.62,
+        pieces: 2,
         designs: [
           {
             base: '#e9e4d8',
