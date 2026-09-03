@@ -195,7 +195,7 @@ export class AudioEngine {
       node = f;
     }
     node.connect(g);
-    g.connect(this.master);
+    g.connect(this.bus);
     return { g, filters };
   }
 
@@ -221,6 +221,13 @@ export class AudioEngine {
     comp.ratio.value = 4;
     this.master.connect(comp);
     comp.connect(c.destination);
+
+    // Everything the machine makes on its own runs through this bus, so a
+    // pause can mute all of it with one gain. Sounds that answer a tap stay on
+    // the master, or the door grip and the console would go dead while paused.
+    this.bus = c.createGain();
+    this.bus.gain.value = 1;
+    this.bus.connect(this.master);
 
     const len = c.sampleRate * NOISE_SECONDS;
     const buf = c.createBuffer(1, len, c.sampleRate);
@@ -275,7 +282,7 @@ export class AudioEngine {
     this.pumpWhine.gain.value = 0;
     const pumpBand = this.filter('bandpass', PUMP_BLADE_HZ * 5, 1.2);
     this.pumpWhine.connect(pumpBand);
-    pumpBand.connect(this.master);
+    pumpBand.connect(this.bus);
     this.pumpOscs = [];
     for (const mult of [4, 6]) {
       const osc = c.createOscillator();
@@ -321,13 +328,32 @@ export class AudioEngine {
     const c = this.ctx;
     const t = c.currentTime;
     const set = (param, value, tc = 0.12) => param.setTargetAtTime(value, t, tc);
-    const beds = [this.rumble, this.slosh, this.fill, this.fillJet, this.drain,
-      this.drainFlow, this.spray, this.whine];
+
+    const filling = s.target > s.level + 0.005;
+    const draining = s.target < s.level - 0.005;
+    if (this.wasFilling === null) {
+      this.wasFilling = filling;
+      this.wasDraining = draining;
+    }
+
     if (s.paused) {
-      for (const b of beds) set(b.g.gain, 0);
-      set(this.pumpWhine.gain, 0);
+      // The AM depths feed the bed gain AudioParams directly, and a param's
+      // value is its own plus everything connected to it, so zeroing the beds
+      // would leave the LFOs still swinging them. Muting the bus covers every
+      // bed at once, including any added later.
+      set(this.bus.gain, 0, 0.02);
+      set(this.rumbleAm.depth.gain, 0, 0.02);
+      set(this.whineAm.depth.gain, 0, 0.02);
+      // A stage can still be skipped while paused, so take on whatever the
+      // water did; otherwise resuming would fire a valve or pump one-shot for
+      // a transition that already happened.
+      this.wasFilling = filling;
+      this.wasDraining = draining;
+      // Bed levels are left where they are rather than pulled to zero, so
+      // resuming is immediate instead of fading back in.
       return;
     }
+    set(this.bus.gain, 1, 0.05);
 
     const r = Math.abs(s.rpm);
     const ar = AudioEngine.audioRpm(s.rpm);
@@ -374,12 +400,6 @@ export class AudioEngine {
     );
     set(this.slosh.filters[2].frequency, BUBBLE_PEAK * (0.8 + 0.5 * motion), 0.15);
 
-    const filling = s.target > s.level + 0.005;
-    const draining = s.target < s.level - 0.005;
-    if (this.wasFilling === null) {
-      this.wasFilling = filling;
-      this.wasDraining = draining;
-    }
     if (filling !== this.wasFilling) {
       if (filling) this.valveOpen();
       else this.valveClose();
@@ -439,7 +459,7 @@ export class AudioEngine {
 
   // A damped sinusoid is what a resonant mode actually radiates. Fixed
   // frequency with a little scatter per hit, never a downward glide.
-  mode(freq, amp, decay, t, type = 'sine') {
+  mode(freq, amp, decay, t, type = 'sine', out = this.bus) {
     const c = this.ctx;
     const osc = c.createOscillator();
     osc.type = type;
@@ -448,12 +468,12 @@ export class AudioEngine {
     g.gain.setValueAtTime(amp, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
     osc.connect(g);
-    g.connect(this.master);
+    g.connect(out);
     osc.start(t);
     osc.stop(t + decay + 0.02);
   }
 
-  burst(t, { type = 'bandpass', freq, q = 1, amp, decay, sweepTo = 0, grain = 0.35 }) {
+  burst(t, { type = 'bandpass', freq, q = 1, amp, decay, sweepTo = 0, grain = 0.35 }, out = this.bus) {
     const c = this.ctx;
     const src = c.createBufferSource();
     src.buffer = this.noiseBuffer;
@@ -467,13 +487,13 @@ export class AudioEngine {
     g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
     src.connect(f);
     f.connect(g);
-    g.connect(this.master);
+    g.connect(out);
     src.start(t, Math.random() * (NOISE_SECONDS - grain), grain);
   }
 
   // A bubble entrained by a splash rings at the Minnaert frequency and glides
   // up as it shrinks. This is what separates a splash from a noise burst.
-  bubble(t, freq, amp) {
+  bubble(t, freq, amp, out = this.bus) {
     const c = this.ctx;
     const osc = c.createOscillator();
     osc.type = 'sine';
@@ -484,7 +504,7 @@ export class AudioEngine {
     g.gain.setValueAtTime(amp, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
     osc.connect(g);
-    g.connect(this.master);
+    g.connect(out);
     osc.start(t);
     osc.stop(t + decay + 0.02);
   }
@@ -561,7 +581,7 @@ export class AudioEngine {
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
     osc.connect(f);
     f.connect(g);
-    g.connect(this.master);
+    g.connect(this.bus);
     osc.start(t);
     osc.stop(t + 0.36);
   }
@@ -580,7 +600,7 @@ export class AudioEngine {
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
     osc.connect(f);
     f.connect(g);
-    g.connect(this.master);
+    g.connect(this.bus);
     osc.start(t);
     osc.stop(t + 0.44);
     this.mode(160, 0.1, 0.09, t, 'triangle');
@@ -620,9 +640,9 @@ export class AudioEngine {
   latch() {
     if (!this.ctx || !this.master || !this.enabled) return;
     const t = this.ctx.currentTime;
-    this.burst(t, { freq: 2600, q: 1.1, amp: 0.34, decay: 0.022, grain: 0.08 });
-    this.mode(305, 0.16, 0.05, t, 'triangle');
-    this.mode(PANEL_MODES[1], 0.08, 0.07, t);
+    this.burst(t, { freq: 2600, q: 1.1, amp: 0.34, decay: 0.022, grain: 0.08 }, this.master);
+    this.mode(305, 0.16, 0.05, t, 'triangle', this.master);
+    this.mode(PANEL_MODES[1], 0.08, 0.07, t, 'sine', this.master);
   }
 
   // Membrane key on the console: short and soft, two partials under a lowpass.
