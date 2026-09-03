@@ -216,13 +216,12 @@ const app = {
     save();
     refreshUi();
   },
-  toggleSound() {
+  // wasBlocked is the slash the button was showing when it was pressed. That
+  // press asks for sound rather than for silence, and it is the press that
+  // opens the output, so leave the state alone and let it through.
+  toggleSound(wasBlocked) {
     soundInvite = false;
-    // While the output is blocked the button reads as muted, so a press there
-    // asks for sound rather than for silence. The window gesture listener may
-    // already have resumed the context by now, so this goes by what the user
-    // actually saw rather than by the live state.
-    if (soundBlocked) {
+    if (wasBlocked) {
       audio.unlock();
       refreshUi();
       return;
