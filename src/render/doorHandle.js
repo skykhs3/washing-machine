@@ -1,5 +1,6 @@
 // The grip on the right of the door. It lives outside the glass cache because
-// it animates: pressing it works the latch, which snaps in and springs back.
+// it animates: tapping it works the latch, and the grip comes out the way a
+// hand hooked in the pocket would draw it, then springs back.
 const X0 = 1.04;
 const X1 = 1.235;
 const HALF = 0.29;
@@ -10,8 +11,8 @@ const HIT_X0 = 0.99;
 const HIT_X1 = 1.3;
 const HIT_HALF = 0.35;
 
-const DOWN = 0.06;
-const UP = 0.26;
+const OUT = 0.06;
+const BACK = 0.26;
 
 export class DoorHandleLayer {
   constructor(pal) {
@@ -30,34 +31,37 @@ export class DoorHandleLayer {
   update(dt) {
     if (this.t < 0) return;
     this.t += dt;
-    if (this.t > DOWN + UP) this.t = -1;
+    if (this.t > OUT + BACK) this.t = -1;
   }
 
-  // Snaps in over DOWN, then springs back past rest before settling.
-  get press() {
+  // Comes out over OUT, then springs back past rest before settling.
+  get pull() {
     if (this.t < 0) return 0;
-    if (this.t < DOWN) return this.t / DOWN;
-    const u = (this.t - DOWN) / UP;
+    if (this.t < OUT) return this.t / OUT;
+    const u = (this.t - OUT) / BACK;
     const k = 1 - u;
     return Math.cos(u * Math.PI * 1.5) * k * k;
   }
 
   draw(ctx) {
     const pal = this.pal;
-    const press = this.press;
+    const pull = this.pull;
 
     ctx.save();
-    // Pivot about the grip's own centre so it works like a latch rather than
-    // sliding bodily across the door.
-    ctx.translate(CENTRE - 0.03 * press, 0);
-    ctx.rotate(-0.045 * press);
+    // The hinges are on the left, so the latch is worked by drawing the grip
+    // away from them: outwards, and toward the viewer, which the head-on view
+    // can only say with a little scale. Pivot about the grip's own centre so
+    // it tips rather than sliding bodily across the door.
+    ctx.translate(CENTRE + 0.03 * pull, 0);
+    ctx.scale(1 + 0.025 * pull, 1 + 0.025 * pull);
+    ctx.rotate(0.045 * pull);
     ctx.translate(-CENTRE, 0);
 
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.45)';
-    ctx.shadowBlur = 0.05 * (1 - 0.5 * press);
-    ctx.shadowOffsetX = 0.012 * (1 - press);
-    ctx.shadowOffsetY = 0.018 * (1 - 0.4 * press);
+    ctx.shadowBlur = 0.05 * (1 + 0.5 * pull);
+    ctx.shadowOffsetX = 0.012 * (1 + pull);
+    ctx.shadowOffsetY = 0.018 * (1 + 0.4 * pull);
     roundRect(ctx, X0, -HALF, X1 - X0, HALF * 2, 0.075);
     const pad = ctx.createLinearGradient(0, -HALF, 0, HALF);
     pad.addColorStop(0, pal.chrome[1]);
@@ -74,8 +78,9 @@ export class DoorHandleLayer {
     ctx.stroke();
 
     // Finger pocket: the hand goes in behind the grip, so it is in shadow and
-    // deepest against the inner wall. Working the latch closes it up.
-    roundRect(ctx, X0 + 0.028, -HALF + 0.06, 0.1 * (1 - 0.35 * press), (HALF - 0.06) * 2, 0.042);
+    // deepest against the inner wall. Working the latch lifts the grip off the
+    // door, which opens the pocket up.
+    roundRect(ctx, X0 + 0.028, -HALF + 0.06, 0.1 * (1 + 0.35 * pull), (HALF - 0.06) * 2, 0.042);
     const pocket = ctx.createLinearGradient(X0, 0, X0 + 0.13, 0);
     pocket.addColorStop(0, '#07090b');
     pocket.addColorStop(1, '#2a2e34');
@@ -83,10 +88,10 @@ export class DoorHandleLayer {
     ctx.fill();
 
     // Top edge faces the light, bottom edge faces the floor. Tipping the grip
-    // in swings the lit edge away.
+    // out swings the lit edge toward the light.
     ctx.lineCap = 'round';
     ctx.lineWidth = 0.012;
-    ctx.strokeStyle = `rgba(255,255,255,${(0.34 * (1 - 0.6 * press)).toFixed(3)})`;
+    ctx.strokeStyle = `rgba(255,255,255,${(0.34 * (1 + 0.6 * pull)).toFixed(3)})`;
     ctx.beginPath();
     ctx.moveTo(X0 + 0.07, -HALF + 0.008);
     ctx.lineTo(X1 - 0.07, -HALF + 0.008);
