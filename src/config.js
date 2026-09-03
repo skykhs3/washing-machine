@@ -54,6 +54,14 @@ export const CONFIG = {
     manualLevel: 0.35,
   },
 
+  // Laundry. `mask` is the cell grid the soft body is built from, `scale`
+  // shrinks the whole piece, `pieces` is how many go in per press of the
+  // button, and each design carries its own colours plus the marks that make
+  // it read as a garment. Mark coordinates are continuous grid coordinates
+  // (u across columns, v down rows) resolved against the deformed particles,
+  // so seams and bands bend with the cloth. Coordinates outside the mask are
+  // extrapolated and clipped by the silhouette, which is how hems reach the
+  // edge instead of stopping short of it.
   laundry: {
     max: 20,
     maxLow: 12,
@@ -63,24 +71,195 @@ export const CONFIG = {
     types: {
       tshirt: {
         mask: ['#######', '.#####.', '.#####.', '.#####.'],
-        colors: ['#e8574f', '#3f8fd2', '#f2c14e', '#f5f1e8', '#6dbf8a'],
-        pattern: 'stripes',
+        designs: [
+          {
+            base: '#f1ece2',
+            accent: '#2f4f8a',
+            marks: [
+              { t: 'stripe', rows: [1.3, 2.15], u0: 0.6, u1: 5.4, w: 0.42, color: 'accent' },
+              { t: 'band', pts: [[2.05, 0.06], [3, 0.58], [3.95, 0.06]], w: 0.28, color: 'accent' },
+              { t: 'seam', pts: [[0.62, -0.5], [0.62, 0.55]], mirror: true, w: 0.09, color: { shade: 0.24 }, lod: 1 },
+              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 }, lod: 1 },
+            ],
+          },
+          {
+            base: '#f4f1ea',
+            accent: '#b8443a',
+            marks: [
+              { t: 'area', pts: [[-1.2, -1], [1.75, -1], [1.05, 0.95], [-1.2, 0.95]], mirror: true, color: 'accent' },
+              { t: 'band', pts: [[2.05, 0.06], [3, 0.58], [3.95, 0.06]], w: 0.28, color: 'accent' },
+              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 }, lod: 1 },
+            ],
+          },
+          {
+            base: '#3f8fd2',
+            accent: '#f7d154',
+            marks: [
+              { t: 'motif', at: [3, 1.65], r: 0.78, color: 'accent' },
+              { t: 'motif', at: [3, 1.65], r: 0.4, color: { shade: 0.3 } },
+              { t: 'band', pts: [[2.05, 0.06], [3, 0.58], [3.95, 0.06]], w: 0.28, color: { tint: 0.42 } },
+              { t: 'seam', pts: [[0.62, -0.5], [0.62, 0.55]], mirror: true, w: 0.09, color: { shade: 0.24 }, lod: 1 },
+              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 }, lod: 1 },
+            ],
+          },
+          {
+            base: '#6a9c78',
+            accent: '#e8ded0',
+            marks: [
+              { t: 'area', pts: [[1.5, 1.28], [2.85, 1.28], [2.85, 2.35], [1.5, 2.35]], color: { shade: 0.18 } },
+              { t: 'seam', pts: [[1.42, 1.22], [2.93, 1.22]], w: 0.15, color: 'accent' },
+              { t: 'band', pts: [[2.05, 0.06], [3, 0.58], [3.95, 0.06]], w: 0.28, color: 'accent' },
+              { t: 'seam', pts: [[0.62, -0.5], [0.62, 0.55]], mirror: true, w: 0.09, color: { shade: 0.24 }, lod: 1 },
+              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 }, lod: 1 },
+            ],
+          },
+          {
+            base: '#e05a4f',
+            accent: '#f7f2e8',
+            marks: [
+              { t: 'band', pts: [[2.05, 0.06], [3, 0.58], [3.95, 0.06]], w: 0.3, color: 'accent' },
+              { t: 'seam', pts: [[0.62, -0.5], [0.62, 0.55]], mirror: true, w: 0.09, color: { shade: 0.24 }, lod: 1 },
+              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 }, lod: 1 },
+            ],
+          },
+        ],
       },
+
       sock: {
         mask: ['..##', '..##', '####'],
         scale: 0.62,
-        colors: ['#f5f1e8', '#3a3f5c', '#7dc27a', '#f08a5d'],
-        pattern: 'dots',
+        designs: [
+          {
+            base: '#e9e4d8',
+            accent: '#2f3542',
+            marks: [
+              { t: 'band', pts: [[0.05, 2.02], [0.85, 2.02]], w: 1.3, color: 'accent' },
+              { t: 'band', pts: [[3.1, 1.9], [3.1, 2.12]], w: 1.25, color: 'accent' },
+              { t: 'band', pts: [[1.9, 0.28], [3.3, 0.28]], w: 0.34, color: 'accent' },
+              { t: 'seam', pts: [[1.9, 0.72], [3.3, 0.72]], w: 0.09, color: { shade: 0.2 }, lod: 1 },
+            ],
+          },
+          {
+            base: '#3a3f5c',
+            accent: '#f2c14e',
+            marks: [
+              { t: 'stripe', rows: [0.32, 0.76], u0: 1.85, u1: 3.35, w: 0.26, color: 'accent' },
+              { t: 'band', pts: [[0.05, 2.05], [0.7, 2.05]], w: 1.2, color: { tint: 0.3 } },
+            ],
+          },
+          {
+            base: '#7dc27a',
+            accent: '#eef2ec',
+            marks: [
+              { t: 'band', pts: [[0.05, 2.02], [0.8, 2.02]], w: 1.3, color: 'accent' },
+              { t: 'band', pts: [[1.9, 0.3], [3.3, 0.3]], w: 0.3, color: 'accent' },
+            ],
+          },
+          {
+            base: '#f08a5d',
+            accent: '#b8532c',
+            marks: [
+              { t: 'seam', pts: [[2.35, 0.5], [2.35, 1.7]], w: 0.09, color: 'accent' },
+              { t: 'seam', pts: [[2.85, 0.5], [2.85, 1.7]], w: 0.09, color: 'accent' },
+              { t: 'seam', pts: [[3.35, 0.5], [3.35, 1.7]], w: 0.09, color: 'accent' },
+              { t: 'band', pts: [[1.9, 0.28], [3.3, 0.28]], w: 0.3, color: 'accent' },
+            ],
+          },
+        ],
       },
+
       towel: {
         mask: ['###', '###', '###', '###', '###'],
-        colors: ['#f0a6c8', '#9ad1e6', '#f7e7a1', '#c8b6ff'],
-        pattern: 'waffle',
+        designs: [
+          {
+            base: '#f0a6c8',
+            accent: '#fdf3f7',
+            marks: [
+              { t: 'stripe', rows: [0.45, 3.55], u0: -0.4, u1: 2.4, w: 0.36, color: 'accent' },
+              { t: 'stripe', rows: [0.75, 3.25], u0: -0.4, u1: 2.4, w: 0.1, color: { shade: 0.18 } },
+            ],
+          },
+          {
+            base: '#9ad1e6',
+            accent: '#2f6f95',
+            marks: [
+              { t: 'stripe', rows: [0.4, 3.6], u0: -0.4, u1: 2.4, w: 0.34, color: 'accent' },
+              { t: 'stripe', rows: [0.85, 3.15], u0: -0.4, u1: 2.4, w: 0.18, color: 'accent' },
+              { t: 'seam', pts: [[-0.35, 0.15], [2.35, 0.15]], w: 0.08, color: { shade: 0.2 } },
+              { t: 'seam', pts: [[-0.35, 3.85], [2.35, 3.85]], w: 0.08, color: { shade: 0.2 } },
+            ],
+          },
+          {
+            base: '#f7e7a1',
+            accent: '#d0a83c',
+            marks: [
+              { t: 'stripe', rows: [1.1, 2.9], u0: -0.4, u1: 2.4, w: 0.16, color: 'accent' },
+              { t: 'seam', pts: [[0.55, -0.4], [0.55, 4.4]], w: 0.14, color: 'accent' },
+              { t: 'seam', pts: [[1.45, -0.4], [1.45, 4.4]], w: 0.14, color: 'accent' },
+              { t: 'stripe', rows: [0.35, 3.65], u0: -0.4, u1: 2.4, w: 0.3, color: 'accent' },
+            ],
+          },
+          {
+            base: '#c8b6ff',
+            accent: '#f3eeff',
+            marks: [
+              { t: 'stripe', rows: [0.5, 3.5], u0: -0.4, u1: 2.4, w: 0.32, color: 'accent' },
+              { t: 'seam', pts: [[0.15, -0.18], [0.15, 0.34]], w: 0.11, color: 'accent', lod: 1 },
+              { t: 'seam', pts: [[1.0, -0.18], [1.0, 0.34]], w: 0.11, color: 'accent', lod: 1 },
+              { t: 'seam', pts: [[1.85, -0.18], [1.85, 0.34]], w: 0.11, color: 'accent', lod: 1 },
+              { t: 'seam', pts: [[0.15, 3.66], [0.15, 4.18]], w: 0.11, color: 'accent', lod: 1 },
+              { t: 'seam', pts: [[1.0, 3.66], [1.0, 4.18]], w: 0.11, color: 'accent', lod: 1 },
+              { t: 'seam', pts: [[1.85, 3.66], [1.85, 4.18]], w: 0.11, color: 'accent', lod: 1 },
+            ],
+          },
+        ],
       },
+
       pants: {
         mask: ['#####', '#####', '##.##', '##.##', '##.##'],
-        colors: ['#2f4f8a', '#4a6ea8', '#3d3d3d', '#7a5c3e'],
-        pattern: 'denim',
+        designs: [
+          {
+            base: '#3c5a8a',
+            accent: '#d9b26a',
+            marks: [
+              { t: 'band', pts: [[-0.4, 0.15], [4.4, 0.15]], w: 0.46, color: { shade: 0.2 } },
+              { t: 'seam', pts: [[2, 0.5], [2, 1.45]], w: 0.1, color: 'accent' },
+              { t: 'seam', pts: [[0.55, 1.1], [1.5, 1.1], [1.5, 1.85]], mirror: true, w: 0.08, color: 'accent', lod: 1 },
+              { t: 'seam', pts: [[0.18, 0.45], [0.18, 4.35]], mirror: true, w: 0.09, color: 'accent', lod: 1 },
+              { t: 'band', pts: [[-0.35, 3.9], [1.5, 3.9]], mirror: true, w: 0.26, color: { shade: 0.18 } },
+            ],
+          },
+          {
+            base: '#b9a07a',
+            accent: '#8a7350',
+            marks: [
+              { t: 'band', pts: [[-0.4, 0.15], [4.4, 0.15]], w: 0.44, color: 'accent' },
+              { t: 'seam', pts: [[2, 0.5], [2, 1.4]], w: 0.09, color: { shade: 0.22 } },
+              { t: 'seam', pts: [[0.18, 0.45], [0.18, 4.35]], mirror: true, w: 0.08, color: { shade: 0.2 }, lod: 1 },
+              { t: 'band', pts: [[-0.35, 3.95], [1.5, 3.95]], mirror: true, w: 0.22, color: 'accent' },
+            ],
+          },
+          {
+            base: '#2b2f36',
+            accent: '#e6e9ee',
+            marks: [
+              { t: 'seam', pts: [[0.3, 0.5], [0.3, 4.4]], mirror: true, w: 0.15, color: 'accent' },
+              { t: 'seam', pts: [[0.62, 0.5], [0.62, 4.4]], mirror: true, w: 0.15, color: 'accent' },
+              { t: 'band', pts: [[-0.4, 0.15], [4.4, 0.15]], w: 0.5, color: { tint: 0.16 } },
+              { t: 'band', pts: [[-0.35, 4.0], [1.5, 4.0]], mirror: true, w: 0.28, color: { tint: 0.16 } },
+            ],
+          },
+          {
+            base: '#4a4f58',
+            accent: '#20242a',
+            marks: [
+              { t: 'band', pts: [[-0.4, 0.15], [4.4, 0.15]], w: 0.4, color: 'accent' },
+              { t: 'seam', pts: [[0.5, 1.9], [0.5, 4.4]], mirror: true, w: 0.1, color: { tint: 0.2 } },
+              { t: 'seam', pts: [[2, 0.5], [2, 1.4]], w: 0.09, color: 'accent' },
+              { t: 'band', pts: [[-0.35, 4.05], [1.5, 4.05]], mirror: true, w: 0.2, color: 'accent' },
+            ],
+          },
+        ],
       },
     },
   },

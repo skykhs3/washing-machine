@@ -61,13 +61,6 @@ export function buildTemplate(type, def, spacing, particleRadius) {
     if (has(c - 1, r + 1)) constraints.push({ a: i, b: id(c - 1, r + 1), rest: diag, shear: true });
   });
 
-  const outline = traceOutline(has, cells, w);
-
-  const row0 = cells.map((cell, i) => ({ cell, i })).filter(({ cell }) => cell.r === 0);
-  const refA = row0[0].i;
-  const refB = row0[row0.length - 1].i;
-  const restAngle = Math.atan2(pos[2 * refB + 1] - pos[2 * refA + 1], pos[2 * refB] - pos[2 * refA]);
-
   return {
     type,
     n,
@@ -78,15 +71,11 @@ export function buildTemplate(type, def, spacing, particleRadius) {
     cols,
     rows: rws,
     constraints,
-    outline,
-    refA,
-    refB,
-    restAngle,
+    outline: traceOutline(has, cells, w),
     extent,
     spacing: sp,
     radius: rp,
-    colors: def.colors,
-    pattern: def.pattern,
+    designs: def.designs,
   };
 }
 

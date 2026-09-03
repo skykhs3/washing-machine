@@ -62,7 +62,7 @@ export class World {
     );
   }
 
-  addBody(type, x, y, rot, colorIdx, vx = 0, vy = 0) {
+  addBody(type, x, y, rot, designIdx, vx = 0, vy = 0) {
     if (!this.canAdd(type)) return null;
     const tpl = this.templates[type];
     const start = this.count;
@@ -106,7 +106,7 @@ export class World {
       n: tpl.n,
       cStart,
       cN: tpl.constraints.length,
-      colorIdx,
+      designIdx,
       alpha: 1,
       removing: false,
       wet: 0,

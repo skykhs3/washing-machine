@@ -75,8 +75,8 @@ let spawnTimer = 0;
 
 const save = createSaver(() => ({
   laundry: [
-    ...world.liveBodies.map((b) => ({ type: b.type, colorIdx: b.colorIdx })),
-    ...spawnQueue.map((q) => ({ type: q.type, colorIdx: q.colorIdx })),
+    ...world.liveBodies.map((b) => ({ type: b.type, designIdx: b.designIdx })),
+    ...spawnQueue.map((q) => ({ type: q.type, designIdx: q.designIdx })),
   ],
   mode: state.mode,
   manual: state.manual,
@@ -110,13 +110,13 @@ const app = {
   soundReady() {
     return !audio.needsGesture;
   },
-  addLaundry(type, colorIdx) {
+  addLaundry(type, designIdx) {
     if (this.laundryCount() >= this.laundryMax()) return;
     const kind = type && TYPES.includes(type) ? type : TYPES[Math.floor(Math.random() * TYPES.length)];
-    const colors = CONFIG.laundry.types[kind].colors;
+    const designs = CONFIG.laundry.types[kind].designs;
     spawnQueue.push({
       type: kind,
-      colorIdx: colorIdx ?? Math.floor(Math.random() * colors.length),
+      designIdx: designIdx ?? Math.floor(Math.random() * designs.length),
     });
     save();
     refreshUi();
@@ -270,7 +270,7 @@ applyQuality();
 
 const initial = Array.isArray(saved?.laundry) ? saved.laundry : DEFAULT_LOAD.map((type) => ({ type }));
 for (const item of initial.slice(0, app.laundryMax())) {
-  app.addLaundry(item.type, item.colorIdx);
+  app.addLaundry(item.type, item.designIdx ?? item.colorIdx);
 }
 if (state.sound.enabled) audio.unlock();
 refreshUi();
@@ -307,7 +307,7 @@ function tickSpawn(dt) {
     x = (x / r) * maxR;
     y = (y / r) * maxR;
   }
-  world.addBody(item.type, x, y, Math.random() * Math.PI * 2, item.colorIdx, Math.random() - 0.5, 1);
+  world.addBody(item.type, x, y, Math.random() * Math.PI * 2, item.designIdx, Math.random() - 0.5, 1);
   spawnTimer = CONFIG.laundry.spawnInterval;
   refreshUi();
 }

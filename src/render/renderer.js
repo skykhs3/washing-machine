@@ -72,7 +72,7 @@ export class Renderer {
     ctx.clip();
     this.drumBack.draw(ctx, drum.theta, dTheta, this.low);
     this.water.drawBack(ctx, water, time, foam.volume);
-    this.laundry.draw(ctx, world, vp, !this.low);
+    this.laundry.draw(ctx, world, this.low);
     this.foam.drawBulk(ctx, foam, water);
     this.water.drawFront(ctx, water, time);
     this.lifters.draw(ctx, drum.theta, dTheta, this.low);
