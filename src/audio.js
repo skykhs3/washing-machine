@@ -545,8 +545,8 @@ export class AudioEngine {
     src.start(t, Math.random() * (NOISE_SECONDS - grain), grain);
   }
 
-  // A bubble entrained by a splash rings at the Minnaert frequency and glides
-  // up as it shrinks. This is what separates a splash from a noise burst.
+  // A bubble rings at the Minnaert frequency and glides up as it shrinks. This
+  // is what separates air breaking into the pump from a plain noise burst.
   bubble(t, freq, amp, out = this.bus) {
     const c = this.ctx;
     const osc = c.createOscillator();
@@ -564,6 +564,9 @@ export class AudioEngine {
   }
 
   impact(strength, wet, splash) {
+    // Laundry going under the surface is left silent. The foam still takes the
+    // air it entrains; only the sound is dropped.
+    if (splash) return;
     if (!this.ctx || !this.master || !this.enabled) return;
     const c = this.ctx;
     const crowd = this.impactCrowd(c.currentTime);
@@ -572,18 +575,6 @@ export class AudioEngine {
     const t = c.currentTime + Math.random() * 0.012;
     const k = Math.min(1, strength / IMPACT_REF);
     const amp = (0.16 + 0.5 * k) * crowd;
-
-    if (splash) {
-      // Broadband crown, then the bubbles it entrained.
-      this.burst(t, { freq: 1800, q: 0.5, amp: amp * 0.8, decay: 0.09 + 0.06 * k });
-      this.burst(t, { type: 'highpass', freq: 2400, amp: amp * 0.25, decay: 0.05 });
-      const n = 2 + Math.floor(Math.random() * 3);
-      for (let i = 0; i < n; i++) {
-        const at = t + Math.random() * 0.09;
-        this.bubble(at, 800 + Math.random() * 3200, amp * (0.1 + 0.16 * Math.random()));
-      }
-      return;
-    }
 
     // Wet cloth is heavier and much more damped: darker slap, shorter ring.
     const slapHz = 1300 - 600 * wet;
