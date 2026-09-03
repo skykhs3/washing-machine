@@ -1,5 +1,7 @@
 # Washing Machine
 
+[English](#washing-machine) | [한국어](#세탁기)
+
 A front-loading drum washing machine you can just sit and watch.
 Soft-body laundry tumbles, soaks, and gets flung against the drum wall during spin, all in plain Canvas 2D with no dependencies.
 
@@ -14,7 +16,7 @@ Soft-body laundry tumbles, soaks, and gets flung against the drum wall during sp
 - Water level, tilted water surface, foam, and buoyancy for anything under the surface
 - Manual mode with an RPM slider, direction toggle, water toggle, and pause
 - Procedural sound driven by the physics, calibrated against the balance of a real front loader: broadband rumble that carries the spin, water in the bubble band pulsed as the lifters scoop it, a fill whose Helmholtz resonance climbs three octaves as the tub fills, a drain pump led by its flow noise and impeller whine with the gurgle and cavitation of air breaking in, water flung out of a wet load during extraction, inlet valve clicks and the water hammer of the valve closing, the door interlock, thuds when laundry lands, and an end-of-cycle beep. It starts muted; the speaker button next to pause turns it on, and the panel has a volume slider
-- Works on desktop and mobile, English and Korean UI, remembers your load between visits
+- Works on desktop and mobile. The UI follows your browser language, English or Korean, and the panel has a button to switch. Your load, mode, manual settings, language, sound, and graphics choice are all remembered between visits
 
 ## Controls
 
@@ -25,12 +27,13 @@ Soft-body laundry tumbles, soaks, and gets flung against the drum wall during sp
 | Tap the console | Keypad beep |
 | Remove / Empty | Remove the last piece or clear the drum |
 | AUTO / MANUAL | Follow the wash program, or take over the motor |
-| RPM slider, Reverse, Water | Manual mode only (touching them switches to manual) |
+| RPM slider, Reverse | Take over the motor; touching either switches to MANUAL |
+| Water | Fill or drain by hand, enabled in MANUAL only |
 | Pause, Skip stage | Freeze everything, or jump to the next stage in AUTO |
 | Speaker button, volume slider | Sound starts off. Tap the speaker to turn it on, then set the level in the panel |
 | Low graphics | Lighter rendering for slow devices (see below) |
 | × / Controls | Close the panel, or bring it back with the Controls button |
-| Space, ← →, ↑ ↓, A, S, Esc | Pause, direction, RPM ±5, mode toggle, skip stage, toggle panel |
+| Space, ← →, ↑ ↓, A, S, Esc | Pause, reverse / forward, RPM ±5, mode toggle, skip stage, toggle panel. The arrow keys switch to MANUAL |
 
 ## Wash program
 
@@ -92,5 +95,107 @@ Any recent browser with ES modules, `ResizeObserver`, `Path2D`, and Pointer Even
 **Low graphics** is a rendering preset for slow devices. It caps the canvas at 1x device pixels, skips the fine stitching on the laundry, halves the foam and drops its per-bubble highlights, drops the sub-frame motion blur, and limits the load to 12 items. The physics is unchanged. It turns on by itself when the browser reports 4 or fewer cores or 4 GB or less of memory, or when the first seconds run slower than about 45 fps. The toggle in the panel overrides the automatic choice and is remembered.
 
 ## License
+
+MIT
+
+---
+
+# 세탁기
+
+[English](#washing-machine) | [한국어](#세탁기)
+
+그냥 앉아서 구경하는 드럼 세탁기입니다.
+말랑한 빨래가 굴러다니고, 물에 잠기고, 탈수 때 드럼 벽에 붙습니다. 전부 의존성 없는 Canvas 2D로 그렸습니다.
+
+**데모:** https://skykhs3.github.io/washing-machine/
+
+![세탁 코스가 진행 중인 드럼 세탁기](docs/screenshot.png)
+
+## 주요 기능
+
+- 표준 면 코스(약 57분)가 알아서 돌아갑니다. 급수 → 세탁 → 배수 → 짧은 탈수 → 같은 배수와 짧은 탈수를 붙인 헹굼 두 번 → 10분 최종 탈수 → 종료, 그리고 다시 처음부터. LED에는 코스의 남은 시간이 뜹니다
+- 티셔츠, 양말, 수건, 바지를 최대 20개까지 넣을 수 있습니다. 종류마다 디자인이 여러 개 있고, 반복 무늬가 아니라 실제 옷의 부위를 그립니다. 칼라, 진동과 옆 솔기, 가슴 줄무늬, 색이 다른 소매, 허리 밴드와 밑단, 수건의 짜임 테두리, 양말의 골지 목과 발끝 보강. 양말은 한 쌍씩 들어가고 한 쌍씩 나옵니다
+- 수위, 기울어지는 수면, 거품, 그리고 수면 아래 물체에 걸리는 부력
+- RPM 슬라이더, 역회전, 급수, 일시정지를 직접 만지는 수동 모드
+- 물리 상태가 그대로 소리가 됩니다. 실제 드럼 세탁기의 음량 균형에 맞춰 보정했습니다. 탈수를 끌고 가는 광대역 저음, 리프터가 물을 퍼 올릴 때마다 기포 대역에서 맥동하는 물소리, 통이 차오르며 Helmholtz 공진이 세 옥타브 올라가는 급수음, 흐름 잡음과 임펠러 소리가 이끌고 공기가 섞여 들며 꾸르륵거리는 배수 펌프, 탈수 중 젖은 빨래에서 튀어 나가는 물, 급수 밸브의 딸깍임과 밸브가 닫힐 때의 수격, 문 잠금, 빨래가 떨어지는 둔탁한 소리, 코스가 끝날 때의 알림음까지 있습니다. 소리는 꺼진 채로 시작합니다. 일시정지 옆의 스피커 버튼으로 켜고, 크기는 조작 패널의 볼륨 슬라이더로 맞춥니다
+- 데스크톱과 모바일 모두에서 동작합니다. UI 언어는 브라우저 언어를 따라 영어나 한국어로 뜨고 패널의 버튼으로 바꿀 수 있으며, 빨래와 모드, 수동 설정, 언어, 소리, 그래픽 설정은 다음 방문에도 남습니다
+
+## 조작
+
+| 조작 | 하는 일 |
+|---|---|
+| 빨래 버튼 / 랜덤 | 한 개를 대기열에 넣습니다. 한 번에 하나씩 떨어집니다 |
+| 문 손잡이 누르기 | 래치가 움직입니다. 걸렸다가 튕겨 돌아옵니다 |
+| 콘솔 누르기 | 조작부 알림음 |
+| 빼기 / 비우기 | 마지막에 넣은 것을 빼거나, 드럼을 비웁니다 |
+| 자동 / 수동 | 세탁 코스를 따르거나, 모터를 직접 잡습니다 |
+| RPM 슬라이더, 역회전 | 모터를 직접 돌립니다. 둘 중 하나를 만지면 수동으로 바뀝니다 |
+| 급수 | 물을 직접 채우고 뺍니다. 수동에서만 켜집니다 |
+| 일시정지, 다음 단계 | 전부 멈추거나, 자동에서 다음 단계로 건너뜁니다 |
+| 스피커 버튼, 볼륨 슬라이더 | 소리는 꺼진 채로 시작합니다. 스피커를 눌러 켜고, 크기는 패널에서 맞춥니다 |
+| 저사양 모드 | 느린 기기를 위해 가볍게 그립니다 (아래 참고) |
+| × / 조작 | 패널을 닫거나, 조작 버튼으로 다시 엽니다 |
+| Space, ← →, ↑ ↓, A, S, Esc | 일시정지, 역회전 / 정회전, RPM ±5, 모드 전환, 다음 단계, 패널 열고 닫기. 방향키를 누르면 수동으로 바뀝니다 |
+
+## 세탁 코스
+
+가정용 드럼 세탁기의 표준 면 코스 시간을 따릅니다.
+
+| 단계 | 길이 | 드럼 | 물 |
+|---|---|---|---|
+| 급수 | 3분 | 정지 | 35 %까지 채움 |
+| 세탁 | 18분 | 45 RPM, 12초씩 방향을 바꾸고 사이에 3초 정지 | 35 % |
+| 배수 | 1.5분 | 정지 | 뺌 |
+| 탈수 | 2분 | 60 RPM으로 고르게 편 뒤 120 RPM, 관성으로 감속 | 없음 |
+| 급수 / 헹굼 / 배수 / 탈수 | 2.5 / 5 / 1.5 / 2분 | 위와 같음 | 30 % |
+| 급수 / 헹굼 / 배수 | 2.5 / 5 / 1.5분 | 위와 같음 | 30 % |
+| 최종 탈수 | 10분 | 60 → 120 → 200 RPM, 1분 관성 감속 | 없음 |
+| 종료 | 2분 | 정지 | 없음 |
+
+전부 합쳐 약 57분이고, 끝나면 코스를 다시 시작합니다. 화면에 뜨는 RPM은 시뮬레이션된 드럼 속도입니다. 실제 탈수 속도(800 ~ 1200 RPM)는 60 fps로 의미 있게 보여줄 수 없어서 최종 탈수를 200 RPM으로 돌립니다. 드럼 반지름과 중력을 실제 50 cm 드럼에 맞춰 잡았기 때문에, 약 60 RPM만 넘어도 빨래는 이미 벽에 붙습니다.
+
+## 동작 원리
+
+- **빨래**는 거리 제약(구조 제약과 대각 전단 제약)으로 이어 붙인 작은 입자 격자입니다. Verlet 적분 위에서 위치 기반 동역학으로 풉니다. 젖은 빨래는 더 무겁고, 더 흐물흐물하고, 더 어두워집니다.
+- **옷에 그려지는 디테일**은 연속적인 격자 좌표로 적어 둔 자국의 목록입니다. u는 마스크의 열을 가로지르고, v는 행을 따라 내려갑니다. 각 샘플 점은 한 번만 주변 입자들의 아핀 결합으로 컴파일해 두므로, 하나를 그리는 데 곱셈과 덧셈 몇 번이면 되고 자국이 천 위에 뻣뻣하게 얹히는 대신 천을 따라 휩니다. 마스크 바깥 좌표는 주변 격자에서 외삽합니다. 밑단이 반 획 못 미쳐 끊기지 않고 실루엣 가장자리까지 닿는 것이 이 덕분이고, 넘친 부분은 외곽선이 잘라냅니다. 이 격자에서 소매처럼 폭이 한 칸인 돌출부의 칸은 위아래 이웃이 없으므로, 없는 방향의 간격은 조각 전체의 평균 격자 간격에서 가져옵니다. 색과 두께가 같은 자국은 컴파일 시점에 하나의 경로로 합치고, 저사양 모드에서는 가는 스티치가 빠집니다.
+- **드럼**은 원형 경계에 함께 도는 리프터 캡슐 세 개가 붙은 형태입니다. 접촉에는 움직이는 벽에 대한 쿨롱 마찰이 걸립니다. 그래서 느릴 때는 옷이 벽을 타고 올라갔다가 떨어지고, 빠를 때는 구심 항이 옷을 벽에 붙여 둡니다.
+- **물**은 드럼을 따라 기울고 도는 수면 아래에서 부력과 항력을 겁니다.
+- **거품**은 계면활성제 용액에 말려 들어간 공기라서, 세제와 기계적인 일이 둘 다 있어야 생깁니다. 공기가 말려 들어가는지는 Froude 수 `Fr = w^2 R / g`가 정합니다. 원심 분리 문턱 아래에서는 빨래가 벽을 타고 올라갔다 물속으로 떨어지면서 공기를 끌고 들어가고, 문턱 위에서는 전부 벽에 붙어 버려 떨어지는 일 자체가 없어집니다. 드럼을 실제 50 cm 세탁기처럼 잡으면 문턱이 60 RPM 근처에 놓이므로, 거품은 50 ~ 60 RPM에서 가장 많고 그 위에서는 꺼집니다. 양은 `dV/dt = G(1 - V) - V/tau`로 적분하는 부피라서, 끝없이 자라는 대신 수십 초에 걸쳐 평탄한 값까지 올라갔다가 휘젓기가 멈추면 주저앉습니다. 급수는 들어오는 물줄기가 공기를 말아 넣어 그 자체로 거품을 만들고, 헹굼은 회차마다 계면활성제가 줄어 거품이 약하고 빨리 사라지며, 배수는 막을 얇게 만들어 수위가 내려가는 동안 거품 머리가 무너집니다. 기포 하나하나는 `r^2`에 비례하는 종단 속도로 *유효* 중력을 따라 오릅니다. 유효 중력은 중력에 원심 항을 더한 것이라, 드럼이 빠를 때는 곧장 위가 아니라 드럼 축 쪽으로 옮겨 갑니다. 막이 터질 때까지 `dr/dt = k/r`로 굵어집니다(Ostwald 숙성, 평균 반지름이 `sqrt(t)`처럼 자랍니다). 수면 위의 거품에는 응집력을 줘서 서로 뭉치고, 벽을 타고 올라가고, 덩어리째 떨어져 나갑니다. 거품이 빨래나 물을 되밀지는 않습니다.
+- 수동 모드에서 급수를 켜고 RPM을 훑으면 단조롭지 않은 반응을 볼 수 있습니다. `?debug`를 붙이면 `Fr`, 텀블링 게이트, 생성률, 거품 부피가 함께 표시됩니다.
+- **문**은 왼쪽에 힌지가, 오른쪽에 손잡이가 있습니다. 손잡이는 움직이기 때문에 캐시해 둔 유리 레이어 바깥에 그립니다. 누르면 래치가 걸렸다가 제자리를 지나 튕겨 돌아오고 딸깍 소리가 납니다. 콘솔을 누르면 삑 소리가 납니다. 둘 다 상태를 바꾸지는 않습니다. 앉아서 구경하는 기계라면 만졌을 때 반응은 해야 한다고 봐서 넣었습니다.
+- **소리**는 Web Audio API의 오실레이터와 노이즈 버퍼 하나로 합성합니다. 노이즈 버퍼는 위상을 어긋나게 둔 여러 소스가 읽으므로, 바탕 소리들이 같은 신호를 필터만 달리한 복사본이 되지 않습니다. 소리는 꺼진 채로 시작합니다. 그래서 출력을 여는 첫 동작이 스피커 버튼이고, 그 누름 자체가 브라우저가 요구하는 사용자 제스처가 됩니다. 제스처가 언제 올지 추측하지 않고, 누군가 실제로 원할 때까지 출력을 닫아 둡니다. iOS에서는 세션 타입을 `playback`으로 올립니다. 그러지 않으면 Web Audio가 `ambient` 범주에 머물러 기기의 무음 스위치에 막히기 때문입니다. 컨텍스트는 `suspended`뿐 아니라 `interrupted`에서도 되살리므로 화면 잠금이나 통화 뒤에도 돌아옵니다.
+- **소리가 무엇을 본떴는지.** 음량은 단계 사이의 A 가중 균형이 실제 기계와 맞도록 잡았습니다. 실제로도 탈수는 텀블 세탁보다 훨씬 큽니다. 불균형 힘은 드럼 속도의 제곱으로 커지지만 몸체까지 닿는 것은 그 힘에 서스펜션 전달률을 곱한 값입니다. 그래서 속도를 올리는 동안 90 rpm 근처의 서스펜션 공진을 지날 때 소리가 부풀고, 공진 위로 올라가 통이 스스로 중심을 잡으면 잦아들었다가, 속도와 함께 다시 커지면서 공기 소음이 주도권을 가져갑니다. 회전당 한 번 걸리는 변조는 공진 위에서 거의 완전히 걷어냅니다. 드럼이 200 rpm에서 멈추니 3.3 Hz로 도는데 실제 탈수는 20 Hz이고, 그렇게 느린 변조는 거칠기가 아니라 따로따로 부푸는 소리로 들리기 때문입니다. 가장자리 쌍극자는 속도의 세제곱으로 방사하므로, 최대 탈수는 그저 커지는 대신 밝아집니다. 배수 펌프는 날개 통과 주파수가 아니라 볼류트와 호스의 난류, 그리고 슬롯 주파수보다 두어 배음 위에 있는 모터 소리가 끌고 갑니다. 280 Hz 좁은 대역에 에너지를 몰아넣으면 웅웅거림으로 들리는데 실제 펌프는 높게 도는 소리라서, 날개 성분 필터는 넓고 조용하게 뒀습니다. 물소리는 물이 말아 넣는 기포 크기에 대해 Minnaert 공진 `f = 3.28/a`가 주는 대역, 대략 320 Hz ~ 4 kHz 안에 가둡니다. 대역을 묶지 않은 잡음은 에너지 대부분이 8 kHz 위에 몰려 물이 아니라 쉭쉭거림으로 들립니다. 물소리는 리프터 세 개가 지나가는 주기로 맥동합니다. 드럼 세탁기가 실제로 내는 리듬이고, 그 아래에는 `sqrt(g/R)/2pi`로 더 느리게 출렁이는 물 전체의 움직임이 깔립니다. 음정은 상수 오프셋 없이 속도에 비례하므로, 음색이 단순히 조옮김되는 대신 rpm과 함께 밝아집니다. 다만 드럼이 200 rpm에서 멈추는 반면 실제 기계의 1200 rpm 탈수는 11 g이므로, 음정만은 속도를 한 번 구부린 값을 따릅니다. 텀블은 실제 회전수로, 탈수는 실제 탈수의 음높이로 대응시키고 음량은 구부리지 않은 속도를 씁니다. 충격은 훑고 지나가는 톤이 아니라 고정된 감쇠 사인파로 몸체를 울리고, 젖은 천이 떨어질 때는 마른 천보다 어둡고 짧습니다. 빨래가 수면 아래로 들어갈 때는 소리를 내지 않습니다. 텀블이 빨래를 떨어뜨리는 빈도에서는 물 튀는 소리가 기계 소리라기보다 방해에 가까웠기 때문입니다. 같은 프레임에 겹친 충격은 하나로 솎아내지 않고 비간섭 합 규칙으로 합칩니다. 각각은 `1/sqrt(n)`만큼 조용해집니다.
+- **렌더링**은 캔버스 하나로 합니다. 본체, 드럼 뒷판, 유리, LED 표시는 오프스크린에 캐시합니다. 빠른 회전은 서브 프레임 자세들의 이동 평균으로 그린 뒤 미리 흐려 둔 뒷판과 교차 페이드하므로, 구멍 무늬가 깜빡이지 않습니다.
+
+## 로컬에서 실행
+
+ES 모듈은 `file://`에서 로드되지 않으므로, 폴더를 서버로 띄웁니다.
+
+```sh
+python3 -m http.server 8000
+# 그다음 http://localhost:8000 접속
+```
+
+URL에 `?debug`를 붙이면 입자, 제약, 리프터 캡슐, 프레임 시간, 거품 상태, 오디오 출력 상태가 보입니다. `?reset`을 붙이면 저장된 상태를 지웁니다.
+
+## 프로젝트 구조
+
+```
+index.html, style.css      페이지와 오버레이 UI
+src/main.js                루프, 고정 시간 간격 누적기, 앱 상태
+src/config.js              튜닝 상수, 세탁 코스, 빨래 종류
+src/cycle.js               세탁 코스 상태 기계
+src/physics/               월드(SoA 입자), 소프트바디, 드럼, 물, 모터, 공간 해시
+src/render/                뷰포트, 본체, 뒷판, 물, 빨래, 리프터, 거품, 유리, 문 손잡이, 계기판
+src/ui/                    패널, 빨래 선택, 패널 토글, 캔버스 탭, localStorage
+```
+
+## 브라우저 지원
+
+ES 모듈, `ResizeObserver`, `Path2D`, 포인터 이벤트를 지원하는 최근 브라우저면 됩니다.
+
+**저사양 모드**는 느린 기기를 위한 렌더링 프리셋입니다. 캔버스를 기기 픽셀 1배로 제한하고, 빨래의 가는 스티치를 건너뛰고, 거품을 절반으로 줄이면서 기포별 하이라이트를 빼고, 서브 프레임 모션 블러를 끄고, 빨래를 12개로 제한합니다. 물리는 그대로입니다. 브라우저가 코어 4개 이하 또는 메모리 4 GB 이하라고 알리거나, 처음 몇 초가 약 45 fps보다 느리면 저절로 켜집니다. 패널의 토글은 자동 판단보다 우선하고, 그 선택을 기억합니다.
+
+## 라이선스
 
 MIT
