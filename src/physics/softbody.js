@@ -13,17 +13,18 @@ export function buildTemplate(type, def, spacing, particleRadius) {
   const has = (c, r) => c >= 0 && r >= 0 && c < w && r < h && rows[r][c] === '#';
 
   const cells = [];
-  const index = new Map();
+  // -1, not 0: 0 is a valid particle index.
+  const cellAt = new Int16Array(w * h).fill(-1);
   for (let r = 0; r < h; r++) {
     for (let c = 0; c < w; c++) {
       if (has(c, r)) {
-        index.set(r * w + c, cells.length);
+        cellAt[r * w + c] = cells.length;
         cells.push({ c, r });
       }
     }
   }
   const n = cells.length;
-  const id = (c, r) => index.get(r * w + c);
+  const id = (c, r) => cellAt[r * w + c];
 
   let sx = 0;
   let sy = 0;
@@ -67,6 +68,9 @@ export function buildTemplate(type, def, spacing, particleRadius) {
   return {
     type,
     n,
+    w,
+    h,
+    cellAt,
     pos,
     cols,
     rows: rws,
@@ -76,6 +80,8 @@ export function buildTemplate(type, def, spacing, particleRadius) {
     refB,
     restAngle,
     extent,
+    spacing,
+    radius: particleRadius,
     colors: def.colors,
     pattern: def.pattern,
   };
