@@ -25,6 +25,7 @@ const DEFAULT_LOAD = ['tshirt', 'sock', 'sock', 'towel', 'pants', 'tshirt'];
 const DEFAULT_VOLUME = 0.6;
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const numberOr = (v, fallback) => (Number.isFinite(Number(v)) && v !== null ? Number(v) : fallback);
 
 const saved = loadState();
 const canvas = document.getElementById('scene');
@@ -65,6 +66,8 @@ const state = {
   panelOpen: typeof saved?.panelOpen === 'boolean' ? saved.panelOpen : undefined,
   low: saved?.quality ? saved.quality === 'low' : lowHint,
   qualityUserSet: Boolean(saved?.quality),
+  // Detergent dose on the foam slider, 0..1.
+  foam: clamp(numberOr(saved?.foam, CONFIG.foam.defaultLevel), 0, 1),
   sound: {
     enabled: saved?.sound?.enabled ?? false,
     volume: clamp(Number(saved?.sound?.volume ?? DEFAULT_VOLUME) || 0, 0, 1),
@@ -86,6 +89,7 @@ const save = createSaver(() => ({
   lang: state.lang,
   panelOpen: state.panelOpen,
   sound: state.sound,
+  foam: state.foam,
   quality: state.qualityUserSet ? (state.low ? 'low' : 'high') : undefined,
 }));
 
@@ -195,6 +199,13 @@ const app = {
   toggleWater() {
     if (state.mode !== 'manual') this.setMode('manual');
     state.manual.water = !state.manual.water;
+    save();
+    refreshUi();
+  },
+  // The foam slider is the detergent dose. It works in both modes, so unlike
+  // the motor controls it does not switch to MANUAL.
+  setFoam(v) {
+    state.foam = clamp(v, 0, 1);
     save();
     refreshUi();
   },
@@ -420,12 +431,15 @@ function simStep(dt) {
 }
 let lastStageIdx = cycle.idx;
 
-// Detergent concentration only. How much foam that actually produces depends
-// on the air the tumbling load entrains, which Foam.update works out from the
-// drum speed and the agitation.
+// Detergent concentration only. The slider is the dose: in AUTO it scales what
+// each stage of the program has left in the drum, in MANUAL it is the
+// concentration itself. How much foam that actually produces depends on the
+// air the tumbling load entrains, which Foam.update works out from the drum
+// speed and the agitation.
 function surfactantLevel() {
-  if (state.mode === 'auto') return cycle.surfactant();
-  return water.active ? 0.8 : 0;
+  const dose = state.foam / CONFIG.foam.defaultLevel;
+  if (state.mode === 'auto') return cycle.surfactant() * dose;
+  return water.active ? dose : 0;
 }
 
 function hudInfo() {

@@ -43,7 +43,7 @@ export class SpatialHash {
   // Pushes overlapping particles apart. Particles that are direct grid
   // neighbours inside the same body are left to the distance constraints.
   solvePairs(world) {
-    const { px, py, radius, invMass, bodyIdx, gcol, grow } = world;
+    const { px, py, radius, invMass, bodyIdx, gcol, grow, contactX, contactY, contactN, maxBodies } = world;
     const { cellStart, entries, cellIdx, dim, n } = this;
     for (let i = 0; i < n; i++) {
       const c = cellIdx[i];
@@ -84,6 +84,19 @@ export class SpatialHash {
             py[i] -= ddy * s * wi;
             px[j] += ddx * s * wj;
             py[j] += ddy * s * wj;
+            // Record which pieces touch and from which side, for the load the
+            // pile puts on each of them. The normal is stored from the lower
+            // body index to the higher one.
+            const bj = bodyIdx[j];
+            if (bi !== bj) {
+              const lo = bi < bj ? bi : bj;
+              const hi = bi < bj ? bj : bi;
+              const sgn = bi < bj ? 1 : -1;
+              const key = lo * maxBodies + hi;
+              contactX[key] += (sgn * ddx) / d;
+              contactY[key] += (sgn * ddy) / d;
+              contactN[key]++;
+            }
           }
         }
       }

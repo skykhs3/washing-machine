@@ -29,6 +29,37 @@ export const CONFIG = {
     dryRate: 20,
     dryOmega: 10,
     escapeRadius: 1.2,
+    // Fabric compaction. A piece carries the weight of whatever rests on it
+    // (see World.updateCompression) and its lattice shortens along the
+    // effective gravity by up to `max`. That has to stay below 0.55, or
+    // particles two rows apart come within a particle diameter of each other
+    // and start colliding with their own piece. `s0` is the pressure, in
+    // particle weights per particle, below which nothing gives; `s1` sets how
+    // fast compaction saturates above it; `align` is the cosine a contact
+    // needs with the effective gravity to count as support; `band` is how far
+    // the target has to move before the compaction follows it; `stillSpeed`
+    // is the speed relative to the drum below which a piece counts as at rest
+    // and `stillTime` how long it has to stay there; `phiRate` caps how fast,
+    // in rad/s, the tracked orientation may be corrected toward the best fit;
+    // `spinJitter` × w² × h is the numerical jitter of a load riding the drum,
+    // taken off that speed; compaction fades out between `packLow` and
+    // `packHigh`, the load's lattice area over the drum's, because past about
+    // one the load only fits folded over itself.
+    compress: {
+      max: 0.45,
+      s0: 0.6,
+      s1: 3,
+      tauPress: 0.8,
+      tauRelax: 2,
+      align: 0.55,
+      band: 0.05,
+      stillSpeed: 0.15,
+      stillTime: 0.4,
+      phiRate: 1.2,
+      spinJitter: 0.5,
+      packLow: 0.85,
+      packHigh: 1.05,
+    },
   },
 
   motor: {
@@ -267,22 +298,23 @@ export const CONFIG = {
 
   // Standard cotton course, about 57 minutes: wash, two rinses with a short
   // spin after each drain, then a 10 minute final spin.
-  // `surfactant` is the detergent concentration in the drum, not a foam
-  // amount: each rinse dilutes what is left. Foam volume is derived from it
-  // together with the air the tumbling load actually entrains.
+  // `surfactant` is the detergent concentration in the drum at the default
+  // dose, not a foam amount: each rinse dilutes what is left. The foam slider
+  // scales all of them, and foam volume is derived from the result together
+  // with the air the tumbling load actually entrains.
   cycle: {
     stages: [
       { id: 'fill', label: 'fill', phase: 0, duration: 180, rpm: 0, level: 0.35, surfactant: 0.2 },
       { id: 'wash', label: 'wash', phase: 0, duration: 1080, rpm: 45, pattern: TUMBLE, level: 0.35, surfactant: 1 },
       { id: 'drain', label: 'drain', phase: 0, duration: 90, rpm: 0, level: 0, surfactant: 0.2 },
       { id: 'spin1', label: 'spin', phase: 0, duration: 120, rpm: 120, profile: SHORT_SPIN, level: 0, surfactant: 0, spin: true },
-      { id: 'rinseFill1', label: 'fill', phase: 1, duration: 150, rpm: 0, level: 0.3, surfactant: 0.1 },
-      { id: 'rinse1', label: 'rinse', phase: 1, duration: 300, rpm: 45, pattern: TUMBLE, level: 0.3, surfactant: 0.4 },
-      { id: 'drain2', label: 'drain', phase: 1, duration: 90, rpm: 0, level: 0, surfactant: 0.1 },
+      { id: 'rinseFill1', label: 'fill', phase: 1, duration: 150, rpm: 0, level: 0.3, surfactant: 0.08 },
+      { id: 'rinse1', label: 'rinse', phase: 1, duration: 300, rpm: 45, pattern: TUMBLE, level: 0.3, surfactant: 0.3 },
+      { id: 'drain2', label: 'drain', phase: 1, duration: 90, rpm: 0, level: 0, surfactant: 0.08 },
       { id: 'spin2', label: 'spin', phase: 1, duration: 120, rpm: 120, profile: SHORT_SPIN, level: 0, surfactant: 0, spin: true },
-      { id: 'rinseFill2', label: 'fill', phase: 2, duration: 150, rpm: 0, level: 0.3, surfactant: 0.05 },
-      { id: 'rinse2', label: 'rinse', phase: 2, duration: 300, rpm: 45, pattern: TUMBLE, level: 0.3, surfactant: 0.25 },
-      { id: 'drain3', label: 'drain', phase: 2, duration: 90, rpm: 0, level: 0, surfactant: 0 },
+      { id: 'rinseFill2', label: 'fill', phase: 2, duration: 150, rpm: 0, level: 0.3, surfactant: 0.04 },
+      { id: 'rinse2', label: 'rinse', phase: 2, duration: 300, rpm: 45, pattern: TUMBLE, level: 0.3, surfactant: 0.18 },
+      { id: 'drain3', label: 'drain', phase: 2, duration: 90, rpm: 0, level: 0, surfactant: 0.02 },
       { id: 'spin', label: 'spin', phase: 3, duration: 600, rpm: 200, profile: FINAL_SPIN, level: 0, surfactant: 0, spin: true },
       { id: 'done', label: 'done', phase: 4, duration: 120, rpm: 0, level: 0, surfactant: 0 },
     ],
@@ -291,10 +323,19 @@ export const CONFIG = {
   // Foam is air entrained into a surfactant solution, so it needs both
   // detergent and mechanical work. Generation is gated by the Froude number
   // (see Foam.update) and the volume follows saturating kinetics, so foam
-  // builds to a plateau instead of growing without bound.
+  // builds to a plateau instead of growing without bound. How much a full
+  // plateau is depends on the dose: `defaultLevel` is the slider position that
+  // gives a concentration of 1, and the capacity curve reaches the whole
+  // drum at the top of the slider. `max` is the bubble count at that point.
   foam: {
-    max: 96,
-    maxLow: 48,
+    max: 320,
+    maxLow: 160,
+    defaultLevel: 0.35,
+    capacityExp: 1.3,
+    capTau: 1,
+    headRoom: 0.95,
+    radiusGain: 1.2,
+    countExp: 0.7,
     frLow: 0.7,
     frHigh: 1.3,
     agitationMin: 0.35,
@@ -316,7 +357,6 @@ export const CONFIG = {
     minRadius: 0.012,
     maxRadius: 0.042,
     popRadius: 0.055,
-    headMax: 0.2,
     clingRadius: 0.94,
     yieldStress: 8,
     creep: 0.02,

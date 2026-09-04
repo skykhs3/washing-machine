@@ -37,16 +37,18 @@ export function drawDebug(ctx, vp, state) {
     ctx.stroke();
     ctx.restore();
   }
+  let press = 0;
+  for (const b of world.bodies) if (b.press > press) press = b.press;
   vp.pixelTransform(ctx);
   ctx.font = `12px ${UI_FONT}`;
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
   ctx.textBaseline = 'top';
   const lines = [
     `fps ${stats.fps.toFixed(0)}  frame ${stats.frameMs.toFixed(1)}ms  physics ${stats.physMs.toFixed(2)}ms`,
-    `particles ${world.count}  constraints ${world.ccount}  bodies ${world.bodies.length}`,
+    `particles ${world.count}  constraints ${world.ccount}  bodies ${world.bodies.length}  press max ${press.toFixed(2)}`,
     `rpm ${(drum.omega * 60 / TWO_PI).toFixed(1)}  theta ${drum.theta.toFixed(2)}  substeps ${stats.substeps}`,
     `water ${state.water.level.toFixed(2)} tilt ${state.water.tilt.toFixed(2)} swirl ${state.water.swirl.toFixed(2)}`,
-    `foam Fr ${foam.fr.toFixed(2)} tumble ${foam.tumble.toFixed(2)} G ${foam.gen.toFixed(4)} vol ${foam.volume.toFixed(3)} n ${foam.items.length}`,
+    `foam Fr ${foam.fr.toFixed(2)} tumble ${foam.tumble.toFixed(2)} G ${foam.gen.toFixed(4)} vol ${foam.volume.toFixed(3)} cap ${foam.capacity.toFixed(2)} head ${foam.head.toFixed(2)} n ${foam.items.length}`,
     `agitation ${world.agitation.toFixed(2)}  audio ${a.state} / ${a.session} / master ${a.master.toFixed(3)}`,
   ];
   lines.forEach((l, i) => ctx.fillText(l, 10, vp.bandHeight + 8 + i * 15));

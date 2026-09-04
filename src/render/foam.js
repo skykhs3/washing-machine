@@ -26,6 +26,9 @@ export class Foam {
     this.fr = 0;
     this.tumble = 0;
     this.gen = 0;
+    this.capacity = 0;
+    this.rScale = 1;
+    this.head = 0;
   }
 
   // A body fell through the surface: it drags a packet of air under with it.
@@ -90,9 +93,21 @@ export class Foam {
     this.volume = clamp01(this.volume);
     this.splashAir = 0;
 
+    // The volume is a fraction of what this concentration can hold. Surfactant
+    // is what stabilises the interface, so the plateau itself grows with the
+    // dose, faster than linearly, and at the top of the slider it is the whole
+    // drum. A dose change is eased in so the head swells rather than jumping.
+    const capTarget = clamp01((surfactant * c.defaultLevel) ** c.capacityExp);
+    this.capacity += (capTarget - this.capacity) * (1 - Math.exp(-dt / c.capTau));
+    this.rScale = 1 + c.radiusGain * this.capacity;
+
     const ys = water.surfaceY;
-    const head = c.headMax * this.volume;
-    const target = Math.round(this.volume * this.max);
+    // ys + 1 is the room between the surface and the top of the drum.
+    const head = this.capacity * this.volume * (ys + 1) * c.headRoom;
+    this.head = head;
+    // Bubbles scale up with the head as well as multiplying, so a full drum
+    // takes a few hundred large ones rather than thousands of small ones.
+    const target = Math.round(this.volume * this.max * this.capacity ** c.countExp);
 
     // Retire the oldest first when the foam is shrinking. Only the ones still
     // alive count against the target: a bubble already fading out is on its
@@ -214,7 +229,7 @@ export class Foam {
       if (b.x > limit) b.x = limit;
       else if (b.x < -limit) b.x = -limit;
 
-      if (b.r > c.popRadius || b.age > b.ttl || !water.active) b.dying = true;
+      if (b.r > b.pop || b.age > b.ttl || !water.active) b.dying = true;
       b.fade = b.dying ? b.fade - dt * 2 : Math.min(1, b.fade + dt * 3);
       if (b.fade <= 0) items.splice(i, 1);
     }
@@ -267,7 +282,7 @@ export class Foam {
   spawn(water, surfactant) {
     const c = this.cfg;
     const ys = water.surfaceY;
-    const r = c.minRadius + Math.random() * (c.maxRadius - c.minRadius);
+    const r = (c.minRadius + Math.random() * (c.maxRadius - c.minRadius)) * this.rScale;
     const site = this.sites.length ? this.sites[Math.floor(Math.random() * this.sites.length)] : null;
     let x;
     let y;
@@ -285,6 +300,7 @@ export class Foam {
       x,
       y,
       r,
+      pop: c.popRadius * this.rScale,
       slot: Math.random(),
       vx: 0,
       vy: 0,
@@ -339,7 +355,7 @@ export class FoamLayer {
   drawRaft(ctx, foam, water, waterLayer, time) {
     const items = foam.items;
     if (!items.length || foam.volume <= 0.002) return;
-    const head = foam.cfg.headMax * foam.volume;
+    const head = foam.head;
     ctx.save();
     ctx.rotate(water.tilt);
 
@@ -347,9 +363,9 @@ export class FoamLayer {
     // instead of sitting under a straight edge.
     if (water.active && head > 0.01) {
       ctx.save();
-      ctx.translate(0, -head * 0.28);
+      ctx.translate(0, -Math.min(0.12, head * 0.28));
       waterLayer.surfacePath(ctx, water, time, false);
-      ctx.lineWidth = head * 0.75;
+      ctx.lineWidth = Math.min(0.45, head * 0.75);
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.strokeStyle = `rgba(${this.rgb},${(0.14 + 0.18 * foam.volume).toFixed(3)})`;
@@ -366,7 +382,11 @@ export class FoamLayer {
       any = true;
     }
     if (any) {
-      ctx.fillStyle = `rgba(${this.rgb},${(0.38 + 0.24 * foam.volume).toFixed(3)})`;
+      // Suds are opaque white, so the more of the drum the head fills, the
+      // less of what is behind it shows through.
+      const fill = head / (water.surfaceY + 1);
+      const alpha = Math.min(0.85, 0.38 + 0.24 * foam.volume + 0.25 * fill);
+      ctx.fillStyle = `rgba(${this.rgb},${alpha.toFixed(3)})`;
       ctx.fill();
     }
 
