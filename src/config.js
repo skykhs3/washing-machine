@@ -75,12 +75,13 @@ export const CONFIG = {
   // takes 159 s to reach its level, and at `drainRate` the 90 s drain takes
   // 78 s to empty. MANUAL hands the valve and the pump to the user, and
   // waiting minutes for a slider is not watching a machine, so there the two
-  // run wide open: the whole drum fills in about 12 s and empties in about 6.
+  // run faster: the whole drum fills in about 20 s and empties in about 10,
+  // quick enough that the slider answers and slow enough to watch.
   water: {
     fillRate: 0.0022,
     drainRate: 0.0045,
-    manualFillRate: 0.08,
-    manualDrainRate: 0.16,
+    manualFillRate: 0.05,
+    manualDrainRate: 0.1,
     tiltGain: 0.04,
     tiltMax: 0.44,
     tiltTau: 0.6,
@@ -341,6 +342,10 @@ export const CONFIG = {
     headRoom: 0.95,
     radiusGain: 1.2,
     countExp: 0.7,
+    // Bubble areas the drawn head may stack into its band. Normal use runs at
+    // one to one and a half layers, so this only bites where the band is a
+    // sliver.
+    packing: 3,
     frLow: 0.7,
     frHigh: 1.3,
     agitationMin: 0.35,

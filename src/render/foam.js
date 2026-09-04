@@ -101,13 +101,19 @@ export class Foam {
     this.capacity += (capTarget - this.capacity) * (1 - Math.exp(-dt / c.capTau));
     this.rScale = 1 + c.radiusGain * this.capacity;
 
-    const ys = water.surfaceY;
-    // ys + 1 is the room between the surface and the top of the drum.
-    const head = this.capacity * this.volume * (ys + 1) * c.headRoom;
+    // How much room the air pocket leaves above the surface, which shrinks as
+    // the drum fills and again as the water closes into a ring.
+    const head = this.capacity * this.volume * water.airDepth * c.headRoom;
     this.head = head;
     // Bubbles scale up with the head as well as multiplying, so a full drum
-    // takes a few hundred large ones rather than thousands of small ones.
-    const target = Math.round(this.volume * this.max * this.capacity ** c.countExp);
+    // takes a few hundred large ones rather than thousands of small ones. The
+    // band along the surface only holds so many of them, though: the cap above
+    // a nearly full drum, or the ring the water closes into at speed, is a
+    // sliver of the drum, and without the limit cohesion pushes the surplus
+    // straight back out across the whole of it.
+    const rBar = (c.minRadius + c.maxRadius) * 0.5 * this.rScale;
+    const fit = Math.floor((c.packing * water.surfaceLength * head) / (Math.PI * rBar * rBar));
+    const target = Math.min(fit, Math.round(this.volume * this.max * this.capacity ** c.countExp));
 
     // Retire the oldest first when the foam is shrinking. Only the ones still
     // alive count against the target: a bubble already fading out is on its
@@ -151,6 +157,22 @@ export class Foam {
       const bx = b.x;
       const by = b.y;
       const rad = Math.hypot(bx, by) || 1;
+      // Signed depth under the surface, and the unit vectors along and across
+      // it. On a level surface those are (0,1) and (-1,0), which is the plain
+      // "sink and slide sideways" the head used to do.
+      const depth = water.depthAt(bx, by);
+      let ux = 0;
+      let uy = 1;
+      let tx = -1;
+      let ty = 0;
+      if (!water.flat) {
+        const dyc = by - water.yc;
+        const rho = Math.sqrt(bx * bx + dyc * dyc) || 1e-6;
+        ux = bx / rho;
+        uy = dyc / rho;
+        tx = -uy;
+        ty = ux;
+      }
       // Effective gravity in the rotating drum: gravity plus centrifugal.
       const gx = w2 * bx + gravity * sn;
       const gy = w2 * by + gravity * cs;
@@ -158,7 +180,7 @@ export class Foam {
       // holding the foam up; positive means the wall overhangs it and gravity
       // is peeling it off. The centrifugal part is purely radial and always
       // contributes negatively, which is why foam stays smeared on at speed.
-      const onWall = !b.sub && rad > c.clingRadius && by < ys;
+      const onWall = !b.sub && rad > c.clingRadius && depth < 0;
       const gn = onWall ? -(gx * bx + gy * by) / rad : 0;
       if (b.sub) {
         // A bubble is buoyant, so it accelerates along -g_eff and rises against
@@ -175,7 +197,10 @@ export class Foam {
         b.vy = water.swirl * bx - (gy / gm) * vt;
         b.x = bx + b.vx * dt;
         b.y = by + b.vy * dt;
-        if (b.y <= ys) b.sub = false;
+        // Reaching the surface makes it a head bubble. At speed that surface
+        // is the hole down the middle, so foam driven to the axis surfaces
+        // there instead of staying a cloud under a level line it cannot reach.
+        if (water.depthAt(b.x, b.y) <= 0) b.sub = false;
         if (b.y > 1 - b.r) b.y = 1 - b.r;
       } else if (onWall && gn <= 0) {
         // Held against the wall, so it cannot fall off: it can only shear along
@@ -201,8 +226,8 @@ export class Foam {
           b.y = (b.y / r2) * keep;
         }
         // Carried back under the waterline: it is a bubble in the water again.
-        if (b.y > ys) b.sub = true;
-      } else if (by < ys - head - b.r) {
+        if (water.depthAt(b.x, b.y) > 0) b.sub = true;
+      } else if (depth < -head - b.r) {
         // Above the head, unsupported: a blob of foam falling through air. It is
         // mostly gas, so it weighs almost nothing and the drag is large, which
         // is why suds drift down slowly instead of dropping like water.
@@ -216,18 +241,29 @@ export class Foam {
         b.x = bx + b.vx * dt;
         b.y = by + b.vy * dt;
       } else {
-        // In the head: settle into the layer and drift with the surface flow.
-        const rest = ys - b.slot * head - b.r * 0.5;
+        // In the head: settle into the layer and drift along the surface. The
+        // drift is the swirl projected onto the surface, so suds slide along it
+        // instead of being pushed through it.
+        const rest = -(b.slot * head + b.r * 0.5);
         const wobble = this.still ? 0 : Math.sin(time * 3 + b.phase) * c.wobble;
-        b.vy = (rest - by) * c.settleRate;
-        b.vx = -water.swirl * by + wobble;
+        const vRad = (rest - depth) * c.settleRate;
+        const vTan = -water.swirl * by * tx + water.swirl * bx * ty + wobble;
+        b.vx = ux * vRad + tx * vTan;
+        b.vy = uy * vRad + ty * vTan;
         b.y = by + b.vy * dt;
         b.x = bx + b.vx * dt;
       }
 
-      const limit = Math.sqrt(Math.max(0, 1 - b.y * b.y)) - b.r - 0.01;
-      if (b.x > limit) b.x = limit;
-      else if (b.x < -limit) b.x = -limit;
+      // Pulled back inside the drum along its own radius. Sliding it in x
+      // instead mirrors a bubble across the axis wherever the row is narrower
+      // than the bubble, which the top of a nearly full drum always is.
+      const keep = 1 - b.r - 0.01;
+      const rr = Math.sqrt(b.x * b.x + b.y * b.y);
+      if (rr > keep && rr > 1e-6) {
+        const k = keep / rr;
+        b.x *= k;
+        b.y *= k;
+      }
 
       if (b.r > b.pop || b.age > b.ttl || !water.active) b.dying = true;
       b.fade = b.dying ? b.fade - dt * 2 : Math.min(1, b.fade + dt * 3);
@@ -281,7 +317,6 @@ export class Foam {
 
   spawn(water, surfactant) {
     const c = this.cfg;
-    const ys = water.surfaceY;
     const r = (c.minRadius + Math.random() * (c.maxRadius - c.minRadius)) * this.rScale;
     const site = this.sites.length ? this.sites[Math.floor(Math.random() * this.sites.length)] : null;
     let x;
@@ -290,12 +325,27 @@ export class Foam {
       x = site.x + (Math.random() - 0.5) * 0.25;
       y = site.y + Math.random() * 0.35 * site.k;
     } else {
-      x = (Math.random() * 2 - 1) * 0.8;
-      y = ys + Math.random() * Math.max(0.05, (1 - ys) * 0.5);
+      // Somewhere in the upper half of the water, measured down from the
+      // surface rather than from a level line the surface may not be on.
+      const depth = Math.random() * Math.max(0.05, water.waterDepth * 0.5);
+      if (water.flat) {
+        x = (Math.random() * 2 - 1) * 0.8;
+        y = water.levelY + depth;
+      } else {
+        const rho = water.rhoS + depth;
+        const th = (Math.random() * 2 - 1) * Math.PI;
+        x = rho * Math.sin(th);
+        y = water.yc + rho * Math.cos(th);
+      }
     }
-    const limit = Math.sqrt(Math.max(0, 1 - y * y)) - r - 0.02;
-    if (x > limit) x = limit;
-    else if (x < -limit) x = -limit;
+    // Same radial pull-in as the update loop, for the same reason.
+    const keep = 1 - r - 0.02;
+    const rr = Math.sqrt(x * x + y * y);
+    if (rr > keep && rr > 1e-6) {
+      const k = keep / rr;
+      x *= k;
+      y *= k;
+    }
     return {
       x,
       y,
@@ -359,7 +409,7 @@ export class FoamLayer {
     if (water.active && head > 0.01) {
       ctx.save();
       ctx.translate(0, -Math.min(0.12, head * 0.28));
-      waterLayer.surfacePath(ctx, water, time, false);
+      waterLayer.surfacePath(ctx, water, time);
       ctx.lineWidth = Math.min(0.45, head * 0.75);
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
@@ -380,7 +430,7 @@ export class FoamLayer {
       // Suds are opaque white, so the more of the drum the head fills, the
       // less of what is behind it shows through. A brim-full drum leaves no
       // air over the surface, so there is no head and nothing left to hide.
-      const room = water.surfaceY + 1;
+      const room = water.airDepth;
       const fill = room > 1e-3 ? head / room : 0;
       const alpha = Math.min(0.85, 0.38 + 0.24 * foam.volume + 0.25 * fill);
       ctx.fillStyle = `rgba(${this.rgb},${alpha.toFixed(3)})`;
