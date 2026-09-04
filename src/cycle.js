@@ -74,6 +74,13 @@ export class Cycle {
     return this.stage.level;
   }
 
+  // The level the stage before this one leaves behind, which is what the drum
+  // holds as this stage starts.
+  entryLevel() {
+    const n = this.stages.length;
+    return this.stages[(this.idx - 1 + n) % n].level;
+  }
+
   // Detergent concentration in the drum, not a foam amount.
   surfactant() {
     return this.stage.surfactant ?? 0;

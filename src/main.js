@@ -211,14 +211,18 @@ const app = {
   prevStage() {
     this.stepStage(-1);
   },
-  // Finish what the stage was doing to the water before leaving it, so
+  // The tub lands at whatever the stage before the new one leaves behind, so
   // skipping a fill lands on a full tub instead of carrying the fill into the
-  // next stage, and skipping a drain lands on an empty one. Rewinding is the
-  // same, and both wrap around the ends of the program.
+  // next stage, skipping a drain lands on an empty one, and rewinding into a
+  // drain lands on the full tub it is there to empty. Both wrap around the
+  // ends of the program.
   stepStage(dir) {
     if (state.mode !== 'auto') return;
-    water.level = cycle.targetLevel();
     cycle.step(dir);
+    water.level = cycle.entryLevel();
+    // Arriving at a stage backwards is neither the course ending nor a course
+    // starting, so the stage's arrival sounds do not belong to a rewind.
+    if (dir < 0) lastStageIdx = cycle.idx;
   },
   toggleLang() {
     state.lang = state.lang === 'ko' ? 'en' : 'ko';
