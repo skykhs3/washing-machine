@@ -1,10 +1,10 @@
 const SIDEBAR_WIDTH = 352;
+const MAX_DPR = 2;
 
 export class Viewport {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d', { alpha: false });
-    this.maxDpr = 2;
     this.dpr = 1;
     this.w = 1;
     this.h = 1;
@@ -22,12 +22,6 @@ export class Viewport {
     this.resize(true);
   }
 
-  setMaxDpr(v) {
-    if (v === this.maxDpr) return;
-    this.maxDpr = v;
-    this.resize(true);
-  }
-
   setReserved(px) {
     const v = Math.max(0, px);
     if (Math.abs(v - this.reserved) < 0.5) return;
@@ -39,7 +33,7 @@ export class Viewport {
     const rect = this.canvas.getBoundingClientRect();
     const w = Math.max(1, rect.width);
     const h = Math.max(1, rect.height);
-    const dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr);
+    const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
     if (!force && w === this.w && h === this.h && dpr === this.dpr) return;
     this.w = w;
     this.h = h;

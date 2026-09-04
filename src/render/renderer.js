@@ -26,7 +26,6 @@ export class Renderer {
     this.handle = new DoorHandleLayer(pal);
     this.hud = new Hud(pal);
     this.gen = -1;
-    this.low = false;
   }
 
   // Tap targets on the canvas. The console and the door grip both answer, but
@@ -42,11 +41,6 @@ export class Renderer {
 
   clickHandle() {
     this.handle.click();
-  }
-
-  setLowQuality(low) {
-    this.low = low;
-    this.foam.setLowQuality(low);
   }
 
   draw(state) {
@@ -70,12 +64,12 @@ export class Renderer {
     ctx.beginPath();
     ctx.arc(0, 0, 1, 0, TWO_PI);
     ctx.clip();
-    this.drumBack.draw(ctx, drum.theta, dTheta, this.low);
+    this.drumBack.draw(ctx, drum.theta, dTheta);
     this.water.drawBack(ctx, water, time, foam.volume);
-    this.laundry.draw(ctx, world, this.low);
+    this.laundry.draw(ctx, world);
     this.foam.drawBulk(ctx, foam, water);
     this.water.drawFront(ctx, water, time);
-    this.lifters.draw(ctx, drum.theta, dTheta, this.low);
+    this.lifters.draw(ctx, drum.theta, dTheta);
     this.foam.drawRaft(ctx, foam, water, this.water, time);
     ctx.restore();
 

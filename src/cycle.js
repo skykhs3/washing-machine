@@ -41,13 +41,9 @@ export class Cycle {
     }
   }
 
-  skip() {
-    this.idx = (this.idx + 1) % this.stages.length;
-    this.t = 0;
-  }
-
-  reset() {
-    this.idx = 0;
+  step(dir) {
+    const n = this.stages.length;
+    this.idx = (this.idx + dir + n) % n;
     this.t = 0;
   }
 

@@ -317,11 +317,6 @@ export class Foam {
 export class FoamLayer {
   constructor(pal) {
     this.rgb = pal.foam;
-    this.low = false;
-  }
-
-  setLowQuality(low) {
-    this.low = low;
   }
 
   // Submerged bubbles. Drawn before the front water tint so the tint washes
@@ -383,21 +378,21 @@ export class FoamLayer {
     }
     if (any) {
       // Suds are opaque white, so the more of the drum the head fills, the
-      // less of what is behind it shows through.
-      const fill = head / (water.surfaceY + 1);
+      // less of what is behind it shows through. A brim-full drum leaves no
+      // air over the surface, so there is no head and nothing left to hide.
+      const room = water.surfaceY + 1;
+      const fill = room > 1e-3 ? head / room : 0;
       const alpha = Math.min(0.85, 0.38 + 0.24 * foam.volume + 0.25 * fill);
       ctx.fillStyle = `rgba(${this.rgb},${alpha.toFixed(3)})`;
       ctx.fill();
     }
 
-    if (!this.low) {
-      for (const b of items) {
-        if (b.sub || b.fade <= 0.2) continue;
-        ctx.fillStyle = `rgba(${this.rgb},${(0.5 * b.fade).toFixed(3)})`;
-        ctx.beginPath();
-        ctx.arc(b.x - b.r * 0.34, b.y - b.r * 0.34, b.r * 0.26, 0, TWO_PI);
-        ctx.fill();
-      }
+    for (const b of items) {
+      if (b.sub || b.fade <= 0.2) continue;
+      ctx.fillStyle = `rgba(${this.rgb},${(0.5 * b.fade).toFixed(3)})`;
+      ctx.beginPath();
+      ctx.arc(b.x - b.r * 0.34, b.y - b.r * 0.34, b.r * 0.26, 0, TWO_PI);
+      ctx.fill();
     }
     ctx.restore();
   }

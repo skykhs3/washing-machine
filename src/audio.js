@@ -740,4 +740,36 @@ export class AudioEngine {
       osc.stop(t + 0.12);
     }
   }
+
+  // End of the course: a four note rise on the console speaker. Sine partials
+  // under a lowpass, so it reads as a moulded plastic buzzer rather than a
+  // pure tone, and the last note is held while the others pass through.
+  endChime() {
+    if (!this.ctx || !this.master || !this.enabled) return;
+    const c = this.ctx;
+    const t0 = c.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((freq, i) => {
+      const t = t0 + i * 0.16;
+      const dur = i === notes.length - 1 ? 0.62 : 0.22;
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.1, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      g.connect(this.master);
+      const f = this.filter('lowpass', 4000, 0.7);
+      f.connect(g);
+      for (const [mult, level] of [[1, 1], [2, 0.25]]) {
+        const osc = c.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq * mult;
+        const og = c.createGain();
+        og.gain.value = level;
+        osc.connect(og);
+        og.connect(f);
+        osc.start(t);
+        osc.stop(t + dur + 0.02);
+      }
+    });
+  }
 }

@@ -16,9 +16,17 @@ export function loadState() {
   }
 }
 
+export function clearState() {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    // storage unavailable: nothing to do
+  }
+}
+
 export function createSaver(getState, delay = 500) {
   let timer = 0;
-  return () => {
+  const save = () => {
     clearTimeout(timer);
     timer = setTimeout(() => {
       try {
@@ -28,4 +36,8 @@ export function createSaver(getState, delay = 500) {
       }
     }, delay);
   };
+  // A reset wipes the key and reloads; a write still queued from the last
+  // change would land in between and put the old state back.
+  save.cancel = () => clearTimeout(timer);
+  return save;
 }

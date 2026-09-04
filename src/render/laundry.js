@@ -35,7 +35,7 @@ export class LaundryLayer {
     ctx.closePath();
   }
 
-  draw(ctx, world, low) {
+  draw(ctx, world) {
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     for (const b of world.bodies) {
@@ -62,7 +62,7 @@ export class LaundryLayer {
       ctx.fill();
 
       ctx.clip();
-      drawGarment(ctx, world, b, groups, wet, low);
+      drawGarment(ctx, world, b, groups, wet);
       ctx.restore();
     }
   }
