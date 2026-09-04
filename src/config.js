@@ -71,9 +71,16 @@ export const CONFIG = {
     reducedMotionMaxRpm: 90,
   },
 
+  // The course rates are the real thing: at `fillRate` the 180 s fill stage
+  // takes 159 s to reach its level, and at `drainRate` the 90 s drain takes
+  // 78 s to empty. MANUAL hands the valve and the pump to the user, and
+  // waiting minutes for a slider is not watching a machine, so there the two
+  // run wide open: the whole drum fills in about 12 s and empties in about 6.
   water: {
     fillRate: 0.0022,
     drainRate: 0.0045,
+    manualFillRate: 0.08,
+    manualDrainRate: 0.16,
     tiltGain: 0.04,
     tiltMax: 0.44,
     tiltTau: 0.6,

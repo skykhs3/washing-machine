@@ -413,7 +413,7 @@ function simStep(dt) {
   }
   motor.update(dt);
   drum.omega = motor.omega;
-  water.update(dt, drum.omega);
+  water.update(dt, drum.omega, state.mode === 'manual');
   tickSpawn(dt);
   world.step(dt, drum, water);
   if (state.mode === 'auto' && cycle.idx !== lastStageIdx) {

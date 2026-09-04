@@ -16,10 +16,12 @@ export class Water {
     return 1 - 2 * this.level;
   }
 
-  update(dt, omega) {
+  update(dt, omega, manual = false) {
     const c = this.cfg;
     const d = this.target - this.level;
-    const rate = (d > 0 ? c.fillRate : c.drainRate) * dt;
+    const rate = (d > 0
+      ? (manual ? c.manualFillRate : c.fillRate)
+      : (manual ? c.manualDrainRate : c.drainRate)) * dt;
     this.level += d > rate ? rate : d < -rate ? -rate : d;
 
     const tiltT = Math.max(-c.tiltMax, Math.min(c.tiltMax, c.tiltGain * omega));
