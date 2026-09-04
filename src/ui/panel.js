@@ -101,15 +101,19 @@ export function initPanel(root, app) {
         els.rpmOut.textContent = String(rpm);
       }
       els.dir.setAttribute('aria-pressed', String(dir < 0));
-      // Where the water turns into a ring. It only depends on the level, so it
-      // is written when that moves it rather than every poll.
-      const mark = app.ringRpm() / app.maxRpm();
+      // Whatever the water slider is showing: the setting in MANUAL, the live
+      // level in AUTO where that slider is a gauge.
+      const level = s.mode === 'manual' ? s.manual.waterLevel : app.currentWaterLevel();
+      // Where that much water turns into a ring, so the mark answers for the
+      // setting the water slider holds rather than for the water that has
+      // arrived so far. Otherwise the two controls disagree for a whole fill.
+      const mark = app.ringRpm(level) / app.maxRpm();
       if (force || Math.abs(mark - lastMark) > 0.002) {
         lastMark = mark;
         els.rpmTrack.style.setProperty('--mark', String(Math.min(1, mark)));
         els.rpmTrack.style.setProperty('--mark-on', mark <= 1 ? '1' : '0');
       }
-      const water = Math.round((s.mode === 'manual' ? s.manual.waterLevel : app.currentWaterLevel()) * 100);
+      const water = Math.round(level * 100);
       if (force || water !== lastWater) {
         lastWater = water;
         els.water.value = String(water);

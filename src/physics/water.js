@@ -92,16 +92,18 @@ export class Water {
     return Math.max(0, this.rhoS - Math.max(0, -this.yc - 1));
   }
 
-  // The speed at which the surface closes into a ring. The hole touches the
+  // The speed at which the given level would close into a ring. Takes the
+  // level rather than reading its own, so a control can ask about the setting
+  // it holds instead of the water that has arrived so far. The hole touches the
   // wall exactly when the offset equals the water's own mean depth: at that
   // tangency the air lens is a plain circle of radius 1 - d, so conserving its
   // area gives d = 1 - sqrt(1 - water/pi), which is that depth. Solving
   // d(w) = depth for the Froude number is then one monotone equation and needs
   // no area solve of its own. It always has its root below Fr = 3, where the
   // carry factor has already saturated and the equation reads 2 depth > 0.
-  ringOmega() {
-    if (this.level <= 0) return Infinity;
-    const depth = 1 - Math.sqrt(Math.max(0, 1 - capArea(this.levelY) / Math.PI));
+  ringOmega(level) {
+    if (level <= 0) return Infinity;
+    const depth = 1 - Math.sqrt(Math.max(0, 1 - capArea(1 - 2 * level) / Math.PI));
     if (depth <= 0) return Infinity;
     let lo = 0;
     let hi = FR_CARRY_HI;
