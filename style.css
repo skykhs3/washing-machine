@@ -1,5 +1,7 @@
 :root {
   color-scheme: dark;
+  /* Native range thumb, which the reference marks need to inset the track by. */
+  --thumb: 16px;
   --bg: #2b2f36;
   --panel: rgba(18, 21, 26, 0.88);
   --panel-border: rgba(255, 255, 255, 0.08);
@@ -297,6 +299,27 @@ button[aria-pressed="true"] {
 
 .slider-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slider output { color: var(--text); font-variant-numeric: tabular-nums; text-align: right; }
+
+/* Where the wash program itself sits on the slider, so it is clear that past
+   the mark is a setting the machine would never choose. It sits under the
+   track, clear of the thumb's travel, which is why the row does not grow. */
+/* Flex, not block: an inline line box would add a descender's worth of
+   height to the row. */
+.track { position: relative; display: flex; min-width: 0; }
+
+.track::after {
+  content: '';
+  position: absolute;
+  /* The thumb's width insets the usable track by half of it at either end. */
+  left: calc(var(--mark) * (100% - var(--thumb)) + var(--thumb) / 2);
+  bottom: 2px;
+  width: 2px;
+  height: 4px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--muted);
+  pointer-events: none;
+}
 
 input[type="range"] {
   width: 100%;
