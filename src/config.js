@@ -75,13 +75,13 @@ export const CONFIG = {
   // takes 159 s to reach its level, and at `drainRate` the 90 s drain takes
   // 78 s to empty. MANUAL hands the valve and the pump to the user, and
   // waiting minutes for a slider is not watching a machine, so there the two
-  // run faster: the whole drum fills in about 20 s and empties in about 10,
-  // quick enough that the slider answers and slow enough to watch.
+  // run faster: the whole drum fills in about 30 s and empties in about 15,
+  // quick enough that the slider answers and slow enough to watch it move.
   water: {
     fillRate: 0.0022,
     drainRate: 0.0045,
-    manualFillRate: 0.05,
-    manualDrainRate: 0.1,
+    manualFillRate: 0.033,
+    manualDrainRate: 0.066,
     tiltGain: 0.04,
     tiltMax: 0.44,
     tiltTau: 0.6,
@@ -338,7 +338,10 @@ export const CONFIG = {
     max: 320,
     defaultLevel: 0.35,
     capacityExp: 1.3,
-    capTau: 1,
+    // How long a dose change takes to reach the foam. The head is the capacity
+    // times the volume, so this is what paces the slider: the suds swell and
+    // sag over a few seconds rather than snapping to the new dose.
+    capTau: 3,
     headRoom: 0.95,
     radiusGain: 1.2,
     countExp: 0.7,
