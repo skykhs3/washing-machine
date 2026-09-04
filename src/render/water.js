@@ -13,7 +13,7 @@ export class WaterLayer {
 
   surfacePath(ctx, water, time, closed) {
     const ys = water.surfaceY;
-    const amp = 0.026 * water.ripple;
+    const amp = 0.008 + 0.018 * Math.min(1, Math.abs(water.swirl) / 2.5);
     const step = (2 * HALF_SPAN) / SEGMENTS;
     let x0 = -HALF_SPAN;
     let y0 = this.waveAt(x0, ys, time, amp, water.swirl);

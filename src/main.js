@@ -419,7 +419,7 @@ function simStep(dt) {
   }
   motor.update(dt);
   drum.omega = motor.omega;
-  water.update(dt, drum.omega, world.agitation);
+  water.update(dt, drum.omega);
   tickSpawn(dt);
   world.step(dt, drum, water);
   if (state.mode === 'auto' && cycle.idx !== lastStageIdx) {
@@ -496,10 +496,7 @@ function frame(now) {
 
   for (const e of world.events) {
     audio.impact(e.strength, e.wet, e.splash);
-    if (e.splash) {
-      foam.splash(e, water.tilt);
-      water.splash(e.strength);
-    }
+    if (e.splash) foam.splash(e, water.tilt);
   }
   world.events.length = 0;
   audio.update(frameDt, {
