@@ -318,8 +318,13 @@ button[aria-pressed="true"] {
   margin-left: -1px;
   border-radius: 1px;
   background: var(--muted);
+  opacity: var(--mark-on, 1);
   pointer-events: none;
 }
+
+/* The RPM mark is not a "past here is unusual" line but a regime boundary that
+   moves with the water, so it is coloured rather than muted. */
+.track.regime::after { background: var(--accent); opacity: calc(var(--mark-on, 1) * 0.6); }
 
 input[type="range"] {
   width: 100%;

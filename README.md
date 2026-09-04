@@ -28,7 +28,7 @@ Soft-body laundry tumbles, soaks, and gets flung against the drum wall during sp
 | Tap the console | Keypad beep |
 | Remove / Empty | Remove the last piece or clear the drum |
 | AUTO / MANUAL | Follow the wash program, or take over the motor |
-| RPM slider, Reverse | Take over the motor; touching either switches to MANUAL |
+| RPM slider, Reverse | Take over the motor; touching either switches to MANUAL. The mark on the track moves with the water: past it the water is flung into a ring against the wall, from 60 RPM with a brim-full drum to about 100 with a trace of water |
 | Foam slider | Detergent dose. Sets how much foam the wash and MANUAL make, from none to a drum full of suds. Works in both modes. The mark on the track is the dose that gives a concentration of one |
 | Water slider | Sets the level in the drum, from empty to brim full. Touching it switches to MANUAL, where the valve and the pump run wide open and the whole drum fills in about 30 seconds; in AUTO it reads out the level the program is at, filling and draining at the course's own pace. The mark on the track is the level the program itself fills to |
 | Pause, Prev / Skip | Freeze everything, or step back and forward through the stages in AUTO |
@@ -131,7 +131,7 @@ MIT
 | 콘솔 누르기 | 조작부 알림음 |
 | 빼기 / 비우기 | 마지막에 넣은 것을 빼거나, 드럼을 비웁니다 |
 | 자동 / 수동 | 세탁 코스를 따르거나, 모터를 직접 잡습니다 |
-| RPM 슬라이더, 역회전 | 모터를 직접 돌립니다. 둘 중 하나를 만지면 수동으로 바뀝니다 |
+| RPM 슬라이더, 역회전 | 모터를 직접 돌립니다. 둘 중 하나를 만지면 수동으로 바뀝니다. 트랙의 눈금은 물 양에 따라 움직이며, 그 위에서는 물이 벽에 붙은 고리가 됩니다. 가득이면 60 RPM, 조금이면 100 RPM 근처입니다 |
 | 거품 슬라이더 | 세제량입니다. 세탁 단계와 수동 모드의 거품 양을 없음부터 드럼 가득까지 정합니다. 두 모드 모두에서 동작합니다. 트랙의 눈금은 농도가 1이 되는 세제량입니다 |
 | 물 슬라이더 | 드럼의 물 높이를 비움부터 가득까지 정합니다. 만지면 수동으로 바뀌며, 수동에서는 밸브와 펌프를 활짝 열어 드럼 전체가 30초쯤에 찹니다. 자동에서는 코스가 만드는 수위를 코스의 속도로 보여 줍니다. 트랙의 눈금은 코스가 채우는 수위입니다 |
 | 일시정지, 이전 단계 / 다음 단계 | 전부 멈추거나, 자동에서 단계를 앞뒤로 옮깁니다 |

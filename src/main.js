@@ -117,6 +117,11 @@ const app = {
   currentWaterLevel() {
     return water.level;
   },
+  // Speed at which the water closes into a ring, which moves with how much of
+  // it there is. Infinity with the drum empty, and there is nothing to mark.
+  ringRpm() {
+    return (water.ringOmega() * 60) / (2 * Math.PI);
+  },
   soundReady() {
     return !audio.needsGesture;
   },

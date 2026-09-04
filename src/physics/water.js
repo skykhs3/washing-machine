@@ -92,6 +92,28 @@ export class Water {
     return Math.max(0, this.rhoS - Math.max(0, -this.yc - 1));
   }
 
+  // The speed at which the surface closes into a ring. The hole touches the
+  // wall exactly when the offset equals the water's own mean depth: at that
+  // tangency the air lens is a plain circle of radius 1 - d, so conserving its
+  // area gives d = 1 - sqrt(1 - water/pi), which is that depth. Solving
+  // d(w) = depth for the Froude number is then one monotone equation and needs
+  // no area solve of its own. It always has its root below Fr = 3, where the
+  // carry factor has already saturated and the equation reads 2 depth > 0.
+  ringOmega() {
+    if (this.level <= 0) return Infinity;
+    const depth = 1 - Math.sqrt(Math.max(0, 1 - capArea(this.levelY) / Math.PI));
+    if (depth <= 0) return Infinity;
+    let lo = 0;
+    let hi = FR_CARRY_HI;
+    for (let i = 0; i < 40; i++) {
+      const mid = (lo + hi) * 0.5;
+      const at = depth * mid + (1 - depth) * smoothstep(FR_CARRY_LO, FR_CARRY_HI, mid);
+      if (at < 1) lo = mid;
+      else hi = mid;
+    }
+    return Math.sqrt(((lo + hi) * 0.5) * this.gravity);
+  }
+
   // Half the angle, about the equipotential centre, that the surface subtends
   // inside the drum. Rays outside it miss the water altogether, which matters
   // once the centre sits outside the drum and only a narrow cone reaches in.

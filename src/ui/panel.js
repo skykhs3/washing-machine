@@ -6,6 +6,7 @@ export function initPanel(root, app) {
     manual: root.querySelector('#modeManual'),
     pause: root.querySelector('#pause'),
     rpm: root.querySelector('#rpm'),
+    rpmTrack: root.querySelector('#rpm').closest('.track'),
     rpmOut: root.querySelector('#rpmOut'),
     foam: root.querySelector('#foam'),
     foamOut: root.querySelector('#foamOut'),
@@ -55,6 +56,7 @@ export function initPanel(root, app) {
 
   let lastRpm = -1;
   let lastWater = -1;
+  let lastMark = -1;
   return {
     refresh() {
       const s = app.state;
@@ -99,6 +101,14 @@ export function initPanel(root, app) {
         els.rpmOut.textContent = String(rpm);
       }
       els.dir.setAttribute('aria-pressed', String(dir < 0));
+      // Where the water turns into a ring. It only depends on the level, so it
+      // is written when that moves it rather than every poll.
+      const mark = app.ringRpm() / app.maxRpm();
+      if (force || Math.abs(mark - lastMark) > 0.002) {
+        lastMark = mark;
+        els.rpmTrack.style.setProperty('--mark', String(Math.min(1, mark)));
+        els.rpmTrack.style.setProperty('--mark-on', mark <= 1 ? '1' : '0');
+      }
       const water = Math.round((s.mode === 'manual' ? s.manual.waterLevel : app.currentWaterLevel()) * 100);
       if (force || water !== lastWater) {
         lastWater = water;
