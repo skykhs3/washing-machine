@@ -587,7 +587,11 @@ export const CONFIG = {
     shearFr: 4,
     stokes: 240,
     riseCap: 0.45,
-    coarsen: 2e-5,
+    // Ostwald ripening has to be fast enough that the largest bubbles actually
+    // reach popRadius inside a lifetime: below about 1e-4 nothing ever bursts
+    // and the head only ever ages out. At this rate about a quarter of the
+    // bubbles at the default dose burst, and the rest still age out.
+    coarsen: 1.5e-4,
     minRadius: 0.012,
     maxRadius: 0.042,
     popRadius: 0.055,

@@ -528,7 +528,13 @@ function frame(now) {
   });
 
   const info = hudInfo();
-  foam.update(frameDt, {
+  // The fixed step loop advances the world by at most maxStepsPerFrame steps
+  // and drops what is left over, so a slow frame moves the drum less than the
+  // clock says it should. Foam rides on that drum and is stuck to that wall, so
+  // it has to be handed the same shortened step: given the whole frame it would
+  // carry the head around faster than the wall holding it up.
+  const simDt = Math.min(frameDt, CONFIG.physics.dt * CONFIG.physics.maxStepsPerFrame);
+  foam.update(simDt, {
     water,
     drum,
     agitation: world.agitation,

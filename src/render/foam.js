@@ -88,7 +88,10 @@ export class Foam {
     const collapse = (1 + c.drainCollapse * dry) * shear;
     const room = 1 - this.volume;
     this.volume += (this.gen * room - (this.volume / tau) * collapse) * dt;
-    // Several bodies can land in the same frame, so cap what one frame adds.
+    // Several bodies can land in the same frame, so cap the air one frame can
+    // drag under the surface. The cap is on that air, not on the foam it turns
+    // into: how much interface it stabilises is still the surfactant's to say,
+    // so at a heavy dose the volume this adds runs past the cap itself.
     this.volume += splashGate * Math.min(this.splashAir, c.splashAirMax) * room;
     this.volume = clamp01(this.volume);
     this.splashAir = 0;
@@ -142,6 +145,11 @@ export class Foam {
     } else {
       this.spawnAcc = 0;
     }
+
+    // The radius a film can no longer hold, read off the dose as it stands
+    // rather than the dose a bubble was born under: thinning the solution takes
+    // the largest bubbles with it instead of leaving them on an old threshold.
+    const pop = c.popRadius * this.rScale;
 
     const cs = Math.cos(water.tilt);
     const sn = Math.sin(water.tilt);
@@ -265,7 +273,7 @@ export class Foam {
         b.y *= k;
       }
 
-      if (b.r > b.pop || b.age > b.ttl || !water.active) b.dying = true;
+      if (b.r > pop || b.age > b.ttl || !water.active) b.dying = true;
       b.fade = b.dying ? b.fade - dt * 2 : Math.min(1, b.fade + dt * 3);
       if (b.fade <= 0) items.splice(i, 1);
     }
@@ -395,7 +403,6 @@ export class Foam {
       x,
       y,
       r,
-      pop: c.popRadius * this.rScale,
       slot: Math.random(),
       vx: 0,
       vy: 0,
