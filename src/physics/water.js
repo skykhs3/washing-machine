@@ -146,6 +146,7 @@ export class Water {
       this.flat = true;
       this.yc = -Infinity;
       this.rhoS = Infinity;
+      this.solvedLevel = -1;
       return;
     }
     const water = capArea(this.levelY);
@@ -163,6 +164,10 @@ export class Water {
       this.flat = true;
       this.yc = -d;
       this.rhoS = Infinity;
+      // The solve is only valid while the surface is curved, so drop it here:
+      // coming back to a level and speed solved before must solve again rather
+      // than reuse a flat surface.
+      this.solvedLevel = -1;
       return;
     }
     if (this.level === this.solvedLevel && omega === this.solvedOmega) return;
