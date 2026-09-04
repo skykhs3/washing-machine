@@ -36,8 +36,30 @@ export const CONFIG = {
     // and start colliding with their own piece. `s0` is the pressure, in
     // particle weights per particle, below which nothing gives; `s1` sets how
     // fast compaction saturates above it; `align` is the cosine a contact
-    // needs with the effective gravity to count as support.
-    compress: { max: 0.45, s0: 0.6, s1: 3, tauPress: 0.25, tauRelax: 0.9, align: 0.3 },
+    // needs with the effective gravity to count as support; `band` is how far
+    // the target has to move before the compaction follows it; `stillSpeed`
+    // is the speed relative to the drum below which a piece counts as at rest
+    // and `stillTime` how long it has to stay there; `phiRate` caps how fast,
+    // in rad/s, the tracked orientation may be corrected toward the best fit;
+    // `spinJitter` × w² × h is the numerical jitter of a load riding the drum,
+    // taken off that speed; compaction fades out between `packLow` and
+    // `packHigh`, the load's lattice area over the drum's, because past about
+    // one the load only fits folded over itself.
+    compress: {
+      max: 0.45,
+      s0: 0.6,
+      s1: 3,
+      tauPress: 0.8,
+      tauRelax: 2,
+      align: 0.55,
+      band: 0.05,
+      stillSpeed: 0.15,
+      stillTime: 0.4,
+      phiRate: 1.2,
+      spinJitter: 0.5,
+      packLow: 0.85,
+      packHigh: 1.05,
+    },
   },
 
   motor: {

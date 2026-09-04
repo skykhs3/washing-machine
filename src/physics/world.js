@@ -1,6 +1,12 @@
 import { SpatialHash } from './spatialHash.js';
 import { buildTemplates } from './softbody.js';
 
+const smooth01 = (t) => {
+  if (t <= 0) return 0;
+  if (t >= 1) return 1;
+  return t * t * (3 - 2 * t);
+};
+
 export class World {
   constructor(phys, laundry) {
     this.cfg = phys;
@@ -132,6 +138,13 @@ export class World {
       height: 0,
       incoming: 0,
       idx: 0,
+      cx: 0,
+      cy: 0,
+      speed: 0,
+      still: 0,
+      // Orientation of the piece relative to its template, tracked rather than
+      // fitted fresh each step (see updateCompression).
+      phi: rot,
       wallN: 0,
       wallX: 0,
       wallY: 0,
@@ -394,7 +407,7 @@ export class World {
   // under water, being buoyant, hardly compacts at all. Cloth packs faster
   // than it lofts back, hence the two time constants.
   updateCompression(dt, water, omega, sub) {
-    const { px, py, radius, invMass, cA, cB, cRest, bodies, order, share } = this;
+    const { px, py, ppx, ppy, radius, invMass, cRest, bodies, order, share } = this;
     const k = this.cfg.compress;
     const B = this.maxBodies;
     const g = this.cfg.gravity;
@@ -405,6 +418,26 @@ export class World {
     const ys = water.surfaceY;
     const beta = water.cfg.buoyancy;
     const n = bodies.length;
+    const h = this.lastH;
+    const invH = 1 / h;
+    // Where a particle riding the drum would have moved to over the last
+    // substep. Comparing against the rigid velocity at the current position
+    // instead leaves a chord-versus-tangent error of about w^2 r h / 2, which
+    // at spin speed alone exceeds the rest threshold.
+    const rc = Math.cos(omega * h);
+    const rs = Math.sin(omega * h);
+    // Lattice area of the load over the drum's. Past about one the load can
+    // only fit folded over itself, and squeezing folded lattices sets their
+    // self-contacts and constraints against each other for good, so
+    // compaction fades out as the drum fills. Nothing is visible down there
+    // in a packed drum anyway.
+    let area = 0;
+    for (let i = 0; i < this.count; i++) {
+      const sp = radius[i] / this.cfg.particleRadius * this.cfg.spacing;
+      area += sp * sp;
+    }
+    const packing = area / Math.PI;
+    const room = 1 - smooth01((packing - k.packLow) / (k.packHigh - k.packLow));
 
     for (let bi = 0; bi < n; bi++) {
       const b = bodies[bi];
@@ -412,6 +445,7 @@ export class World {
       let cy = 0;
       let mass = 0;
       let wetted = 0;
+      let moving = 0;
       const end = b.start + b.n;
       for (let i = b.start; i < end; i++) {
         const x = px[i];
@@ -419,6 +453,11 @@ export class World {
         cx += x;
         cy += y;
         mass += 1 / invMass[i];
+        // Speed relative to the drum, so a load riding the wall in a spin
+        // counts as still.
+        const vx = (x - (rc * ppx[i] - rs * ppy[i])) * invH;
+        const vy = (y - (rs * ppx[i] + rc * ppy[i])) * invH;
+        moving += Math.sqrt(vx * vx + vy * vy);
         if (hasWater) {
           const yr = -x * sinT + y * cosT;
           const d = (yr - ys) / (2 * radius[i]) + 0.5;
@@ -427,6 +466,40 @@ export class World {
       }
       cx /= b.n;
       cy /= b.n;
+      b.cx = cx;
+      b.cy = cy;
+      // Less the numerical jitter of a load riding the drum: each substep the
+      // wall particles run along the tangent and are projected back and the
+      // interior drifts outward and is pulled back, which reads as a speed of
+      // order w^2 h even for a piece that is perfectly pinned.
+      b.speed = Math.max(0, moving / b.n - k.spinJitter * w2 * h);
+      // At rest means at rest for a while: a piece in a shaking pile dips
+      // below the speed threshold every few steps.
+      b.still = b.speed < k.stillSpeed ? b.still + dt : 0;
+      const still = b.still >= k.stillTime;
+      // Orientation. The piece turns with the drum, and while it is at rest
+      // the best-fit rotation to its template corrects that prediction, a
+      // little at a time. A crumpled piece fits its template equally badly at
+      // many angles, so fitting it fresh each step would jump between them
+      // and kick the lattice through the rest lengths below.
+      const pred = b.phi + omega * dt;
+      let phi = pred;
+      if (still) {
+        let sa = 0;
+        let sb = 0;
+        const pos = b.tpl.pos;
+        for (let j = 0, i = b.start; i < end; i++, j += 2) {
+          const x = px[i] - cx;
+          const y = py[i] - cy;
+          sa += pos[j] * x + pos[j + 1] * y;
+          sb += pos[j] * y - pos[j + 1] * x;
+        }
+        let d = Math.atan2(sb, sa) - pred;
+        d = Math.atan2(Math.sin(d), Math.cos(d));
+        const lim = k.phiRate * dt;
+        phi = pred + (d > lim ? lim : d < -lim ? -lim : d);
+      }
+      b.phi = phi;
       const gx = w2 * cx;
       const gy = w2 * cy + g * (1 - (beta * wetted) / b.n);
       const gm = Math.hypot(gx, gy) || 1e-9;
@@ -488,36 +561,71 @@ export class World {
       const stress = (b.incoming + 0.5 * b.weight) / b.n;
       b.load += (stress - b.load) * (stress > b.load ? kPress : kRelax);
       const over = b.load - k.s0;
-      b.press = over > 0 ? k.max * (1 - Math.exp(-over / k.s1)) : 0;
+      const target = over > 0 ? room * k.max * (1 - Math.exp(-over / k.s1)) : 0;
+      // Compaction is quasi-static: a piece being tossed about keeps the
+      // compaction it has until it comes to rest. The load estimate also
+      // wobbles as contacts come and go, and in a packed drum every change of
+      // shape moves the neighbours, which moves the estimate again, so it is
+      // followed only once it has moved by more than the band. Between them a
+      // settled pile stays settled instead of shaking itself awake.
+      let press = b.press;
+      if (b.still >= k.stillTime && Math.abs(target - press) > k.band) {
+        press += (target - press) * (target > press ? kPress : kRelax);
+      }
       b.wallN = 0;
       b.wallX = 0;
       b.wallY = 0;
+      const end = b.start + b.n;
+      const nx = b.nx;
+      const ny = b.ny;
+
+      // The change in compaction is applied as a squeeze of the piece about
+      // its centroid, previous positions included, so it carries no velocity.
+      // Asking the constraints to shrink the lattice instead turns every step
+      // of compaction into a kick, and in a drum packed to the top those kicks
+      // have nowhere to go but back and forth.
+      const ratio = (1 - press) / (1 - b.press) - 1;
+      if (Math.abs(ratio) > 1e-7) {
+        const cx = b.cx;
+        const cy = b.cy;
+        for (let i = b.start; i < end; i++) {
+          const d = ((px[i] - cx) * nx + (py[i] - cy) * ny) * ratio;
+          px[i] += nx * d;
+          py[i] += ny * d;
+          const dp = ((ppx[i] - cx) * nx + (ppy[i] - cy) * ny) * ratio;
+          ppx[i] += nx * dp;
+          ppy[i] += ny * dp;
+        }
+      }
+      b.press = press;
 
       const cons = b.tpl.constraints;
       const cend = b.cStart + b.cN;
-      if (b.press < 0.005) {
+      if (press < 0.005) {
         for (let c = b.cStart, j = 0; c < cend; c++, j++) cRest[c] = cons[j].rest;
         continue;
       }
-      // A uniaxial squeeze by s along n takes a unit vector u to length
-      // sqrt(1 - (1 - s^2)(u.n)^2). Every constraint follows that one affine
-      // map, so the structural and shear members agree instead of fighting.
-      const sq = 1 - b.press;
+      // Rest lengths are the template squeezed along n: a uniaxial squeeze by
+      // s takes a unit vector u to length sqrt(1 - (1 - s^2)(u.n)^2), with u
+      // the member's direction in the template and n taken into the template
+      // frame through the tracked orientation. Every member then follows the
+      // same affine map, so the set is satisfiable and the rows, columns and
+      // diagonals agree. Reading directions off the deformed lattice instead
+      // makes the rest lengths depend on the state they are meant to settle,
+      // which in a packed drum never settles.
+      const cp = Math.cos(b.phi);
+      const sp = Math.sin(b.phi);
+      const lnx = cp * nx + sp * ny;
+      const lny = -sp * nx + cp * ny;
+      const sq = 1 - press;
       const q = 1 - sq * sq;
-      const nx = b.nx;
-      const ny = b.ny;
+      const pos = b.tpl.pos;
       for (let c = b.cStart, j = 0; c < cend; c++, j++) {
-        const ia = cA[c];
-        const ib = cB[c];
-        const dx = px[ib] - px[ia];
-        const dy = py[ib] - py[ia];
-        const L2 = dx * dx + dy * dy;
-        if (L2 < 1e-12) {
-          cRest[c] = cons[j].rest;
-          continue;
-        }
-        const p = dx * nx + dy * ny;
-        cRest[c] = cons[j].rest * Math.sqrt(1 - (q * p * p) / L2);
+        const con = cons[j];
+        const ux = pos[2 * con.b] - pos[2 * con.a];
+        const uy = pos[2 * con.b + 1] - pos[2 * con.a + 1];
+        const p0 = (ux * lnx + uy * lny) / con.rest;
+        cRest[c] = con.rest * Math.sqrt(1 - q * p0 * p0);
       }
     }
   }
