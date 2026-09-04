@@ -61,7 +61,9 @@ export function initPanel(root, app) {
       els.pause.textContent = t(s.lang, s.paused ? 'resume' : 'pause');
       els.quickPause.setAttribute('aria-pressed', String(s.paused));
       els.quickPause.setAttribute('aria-label', t(s.lang, s.paused ? 'resume' : 'pause'));
-      els.water.setAttribute('aria-pressed', String(app.waterOn()));
+      // The button names what the next press does, so it reads Drain while
+      // the tub is full and Fill while it is empty, in AUTO too.
+      els.water.textContent = t(s.lang, app.waterOn() ? 'drain' : 'fill');
       els.water.disabled = !manual;
       els.skip.disabled = manual;
       els.lowPower.setAttribute('aria-pressed', String(s.low));
