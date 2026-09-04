@@ -99,10 +99,7 @@ export function initPanel(root, app) {
         els.rpmOut.textContent = String(rpm);
       }
       els.dir.setAttribute('aria-pressed', String(dir < 0));
-      // Rounded to the slider's own step, or in AUTO the readout would name a
-      // level the thumb cannot sit on.
-      const level = s.mode === 'manual' ? s.manual.waterLevel : app.currentWaterLevel();
-      const water = Math.round((level * 100) / 5) * 5;
+      const water = Math.round((s.mode === 'manual' ? s.manual.waterLevel : app.currentWaterLevel()) * 100);
       if (force || water !== lastWater) {
         lastWater = water;
         els.water.value = String(water);
