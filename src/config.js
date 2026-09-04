@@ -107,7 +107,9 @@ export const CONFIG = {
 
   // The course rates are the real thing: at `fillRate` the 180 s fill stage
   // takes 159 s to reach its level, and at `drainRate` the 90 s drain takes
-  // 78 s to empty. MANUAL hands the valve and the pump to the user, and
+  // 78 s to empty. Cycle leans on the few seconds that leaves on the end of
+  // each of those stages, so a stage has to stay at least as long as the
+  // transfer it asks for. MANUAL hands the valve and the pump to the user, and
   // waiting minutes for a slider is not watching a machine, so there the two
   // run faster: the whole drum fills in about 30 s and empties in about 15,
   // quick enough that the slider answers and slow enough to watch it move.

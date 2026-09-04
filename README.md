@@ -30,7 +30,7 @@ Soft-body laundry tumbles, soaks, and gets flung against the drum wall during sp
 | AUTO / MANUAL | Follow the wash program, or take over the motor |
 | RPM slider, Reverse | Take over the motor; touching either switches to MANUAL. The mark on the track moves with the water: past it the water is flung into a ring against the wall, from 60 RPM with a brim-full drum to about 100 with a trace of water |
 | Foam slider | Detergent dose. Sets how much foam the wash and MANUAL make, from none to a drum full of suds. Works in both modes. The mark on the track is the dose that gives a concentration of one |
-| Water slider | Sets the level in the drum, from empty to brim full. Touching it switches to MANUAL, where the valve and the pump run wide open and the whole drum fills in about 30 seconds; in AUTO it reads out the level the program is at, filling and draining at the course's own pace. The mark on the track is the level the program itself fills to |
+| Water slider | Sets the level in the drum, from empty to brim full. Touching it switches to MANUAL, where the valve and the pump run wide open and the whole drum fills in about 30 seconds; in AUTO it reads out the level the program is at, filling and draining at the course's own pace. Filling it up in MANUAL and then handing the machine back to AUTO pulls the fill stage forward, since the water it was there to move is already in. The mark on the track is the level the program itself fills to |
 | Pause, Prev / Skip | Cut the motor and the valves, so the drum coasts to a stop and the program waits where it stands. Or step back and forward through the stages in AUTO |
 | Speaker button, volume slider | Sound starts off. Tap the speaker to turn it on, then set the level in the panel |
 | Reset all | Clears the saved state and reloads, back to a first visit |
@@ -52,7 +52,7 @@ Timings follow a typical standard cotton course on a household front loader.
 | Final spin | 10 min | 60 → 120 → 200 RPM, 1 min coast down | empty |
 | Done | 2 min | stopped | empty |
 
-Total: about 57 minutes, then the course starts again. The RPM shown is the simulated drum speed. Real spin speeds (800 ~ 1200 RPM) cannot be shown meaningfully at 60 fps, so the final spin runs at 200 RPM. Anything above ~60 RPM already pins the laundry to the wall because the drum radius and gravity are scaled like a real 50 cm drum.
+Total: about 57 minutes, then the course starts again. Fill and drain take their time from the water rather than from the clock, so a drum already at the level it is being filled to only waits out what is left on the end of that stage instead of a fill it does not need. The RPM shown is the simulated drum speed. Real spin speeds (800 ~ 1200 RPM) cannot be shown meaningfully at 60 fps, so the final spin runs at 200 RPM. Anything above ~60 RPM already pins the laundry to the wall because the drum radius and gravity are scaled like a real 50 cm drum.
 
 ## How it works
 
@@ -133,7 +133,7 @@ MIT
 | 자동 / 수동 | 세탁 코스를 따르거나, 모터를 직접 잡습니다 |
 | RPM 슬라이더, 역회전 | 모터를 직접 돌립니다. 둘 중 하나를 만지면 수동으로 바뀝니다. 트랙의 눈금은 물 양에 따라 움직이며, 그 위에서는 물이 벽에 붙은 고리가 됩니다. 가득이면 60 RPM, 조금이면 100 RPM 근처입니다 |
 | 거품 슬라이더 | 세제량입니다. 세탁 단계와 수동 모드의 거품 양을 없음부터 드럼 가득까지 정합니다. 두 모드 모두에서 동작합니다. 트랙의 눈금은 농도가 1이 되는 세제량입니다 |
-| 물 슬라이더 | 드럼의 물 높이를 비움부터 가득까지 정합니다. 만지면 수동으로 바뀌며, 수동에서는 밸브와 펌프를 활짝 열어 드럼 전체가 30초쯤에 찹니다. 자동에서는 코스가 만드는 수위를 코스의 속도로 보여 줍니다. 트랙의 눈금은 코스가 채우는 수위입니다 |
+| 물 슬라이더 | 드럼의 물 높이를 비움부터 가득까지 정합니다. 만지면 수동으로 바뀌며, 수동에서는 밸브와 펌프를 활짝 열어 드럼 전체가 30초쯤에 찹니다. 자동에서는 코스가 만드는 수위를 코스의 속도로 보여 줍니다. 수동에서 미리 채워 두고 자동으로 되돌리면 급수 단계가 앞당겨집니다. 그 단계가 옮기려던 물이 이미 들어 있기 때문입니다. 트랙의 눈금은 코스가 채우는 수위입니다 |
 | 일시정지, 이전 단계 / 다음 단계 | 모터와 밸브를 끊습니다. 드럼이 관성으로 멈추고 코스는 멈춘 자리에서 기다립니다. 또는 자동에서 단계를 앞뒤로 옮깁니다 |
 | 스피커 버튼, 볼륨 슬라이더 | 소리는 꺼진 채로 시작합니다. 스피커를 눌러 켜고, 크기는 패널에서 맞춥니다 |
 | 전체 초기화 | 저장된 상태를 지우고 다시 불러와 첫 방문으로 되돌립니다 |
@@ -155,7 +155,7 @@ MIT
 | 최종 탈수 | 10분 | 60 → 120 → 200 RPM, 1분 관성 감속 | 없음 |
 | 종료 | 2분 | 정지 | 없음 |
 
-전부 합쳐 약 57분이고, 끝나면 코스를 다시 시작합니다. 화면에 뜨는 RPM은 시뮬레이션된 드럼 속도입니다. 실제 탈수 속도(800 ~ 1200 RPM)는 60 fps로 의미 있게 보여줄 수 없어서 최종 탈수를 200 RPM으로 돌립니다. 드럼 반지름과 중력을 실제 50 cm 드럼에 맞춰 잡았기 때문에, 약 60 RPM만 넘어도 빨래는 이미 벽에 붙습니다.
+전부 합쳐 약 57분이고, 끝나면 코스를 다시 시작합니다. 급수와 배수는 시계가 아니라 물에서 시간을 읽습니다. 그래서 채우려는 수위에 이미 도달해 있는 드럼은 필요 없는 급수를 기다리는 대신 그 단계 끝에 남은 것만 기다립니다. 화면에 뜨는 RPM은 시뮬레이션된 드럼 속도입니다. 실제 탈수 속도(800 ~ 1200 RPM)는 60 fps로 의미 있게 보여줄 수 없어서 최종 탈수를 200 RPM으로 돌립니다. 드럼 반지름과 중력을 실제 50 cm 드럼에 맞춰 잡았기 때문에, 약 60 RPM만 넘어도 빨래는 이미 벽에 붙습니다.
 
 ## 동작 원리
 
