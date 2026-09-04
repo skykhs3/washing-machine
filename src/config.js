@@ -29,6 +29,15 @@ export const CONFIG = {
     dryRate: 20,
     dryOmega: 10,
     escapeRadius: 1.2,
+    // Fabric compaction. A piece carries the weight of whatever rests on it
+    // (see World.updateCompression) and its lattice shortens along the
+    // effective gravity by up to `max`. That has to stay below 0.55, or
+    // particles two rows apart come within a particle diameter of each other
+    // and start colliding with their own piece. `s0` is the pressure, in
+    // particle weights per particle, below which nothing gives; `s1` sets how
+    // fast compaction saturates above it; `align` is the cosine a contact
+    // needs with the effective gravity to count as support.
+    compress: { max: 0.45, s0: 0.6, s1: 3, tauPress: 0.25, tauRelax: 0.9, align: 0.3 },
   },
 
   motor: {

@@ -16,6 +16,14 @@ export class World {
     this.cnx = new Float32Array(N);
     this.cny = new Float32Array(N);
     this.impact = new Float32Array(N);
+    // Which pieces touched this step and from which side, keyed by the pair
+    // of body indices. The smallest piece is 8 particles, so 64 is a ceiling.
+    this.maxBodies = 64;
+    this.contactX = new Float32Array(this.maxBodies * this.maxBodies);
+    this.contactY = new Float32Array(this.maxBodies * this.maxBodies);
+    this.contactN = new Float32Array(this.maxBodies * this.maxBodies);
+    this.order = [];
+    this.share = new Float32Array(this.maxBodies);
     this.events = [];
     this.agitation = 0;
     this.wetness = 0;
@@ -57,6 +65,7 @@ export class World {
     const tpl = this.templates[type];
     if (!tpl) return false;
     return (
+      this.bodies.length < this.maxBodies &&
       this.count + tpl.n <= this.cfg.maxParticles &&
       this.ccount + tpl.constraints.length <= this.cfg.maxConstraints
     );
@@ -112,6 +121,20 @@ export class World {
       wet: 0,
       airTime: 0,
       cooldown: 0,
+      // Compaction state: the load carried, smoothed, the squeeze it
+      // produces, the direction it acts along, and the wall contacts seen
+      // this step.
+      load: 0,
+      press: 0,
+      nx: 0,
+      ny: 1,
+      weight: 0,
+      height: 0,
+      incoming: 0,
+      idx: 0,
+      wallN: 0,
+      wallX: 0,
+      wallY: 0,
     };
     this.bodies.push(body);
     this.count += tpl.n;
@@ -186,6 +209,7 @@ export class World {
       this.collectImpacts(h, water);
       this.postStep();
     }
+    this.updateCompression(dt, water, omega, sub);
     this.time += dt;
   }
 
@@ -243,7 +267,7 @@ export class World {
   // Emits one event per body when it lands on the drum after time in the
   // air; strength is the approach speed of the hardest-hitting particle.
   collectImpacts(h, water) {
-    const { px, py, flag, impact } = this;
+    const { px, py, flag, impact, cnx, cny } = this;
     const ys = water.surfaceY;
     const cosT = Math.cos(water.tilt);
     const sinT = Math.sin(water.tilt);
@@ -254,11 +278,16 @@ export class World {
       let sy = 0;
       const end = b.start + b.n;
       for (let i = b.start; i < end; i++) {
-        if (flag[i]) contacts++;
+        if (flag[i]) {
+          contacts++;
+          b.wallX += cnx[i];
+          b.wallY += cny[i];
+        }
         if (impact[i] > maxImp) maxImp = impact[i];
         sx += px[i];
         sy += py[i];
       }
+      b.wallN += contacts;
       b.cooldown -= h;
       if (contacts === 0) {
         b.airTime += h;
@@ -349,6 +378,148 @@ export class World {
       impact[i] = 0;
     }
     this.agitation = agN ? agSum / agN : 0;
+  }
+
+  // Fabric compaction. The load a piece carries is read off the contact
+  // network rather than off the solver's corrections, which are mostly
+  // iteration noise. Every piece weighs its mass in the effective gravity at
+  // its centroid, gravity less buoyancy plus the centrifugal term, and, taken
+  // from the top of the pile down, hands that weight and whatever has landed
+  // on it to the pieces and the wall it rests on, split by how many contacts
+  // point along that gravity. What arrives from above plus half its own
+  // weight is the pressure across it, in particle weights per particle. The
+  // lattice then shortens along the effective gravity by a compaction law, so
+  // the bottom of the pile is pressed flat by what is on it, a load pinned to
+  // the wall in a spin is pressed thin by the centrifugal field, and a piece
+  // under water, being buoyant, hardly compacts at all. Cloth packs faster
+  // than it lofts back, hence the two time constants.
+  updateCompression(dt, water, omega, sub) {
+    const { px, py, radius, invMass, cA, cB, cRest, bodies, order, share } = this;
+    const k = this.cfg.compress;
+    const B = this.maxBodies;
+    const g = this.cfg.gravity;
+    const w2 = omega * omega;
+    const hasWater = water.active;
+    const cosT = Math.cos(water.tilt);
+    const sinT = Math.sin(water.tilt);
+    const ys = water.surfaceY;
+    const beta = water.cfg.buoyancy;
+    const n = bodies.length;
+
+    for (let bi = 0; bi < n; bi++) {
+      const b = bodies[bi];
+      let cx = 0;
+      let cy = 0;
+      let mass = 0;
+      let wetted = 0;
+      const end = b.start + b.n;
+      for (let i = b.start; i < end; i++) {
+        const x = px[i];
+        const y = py[i];
+        cx += x;
+        cy += y;
+        mass += 1 / invMass[i];
+        if (hasWater) {
+          const yr = -x * sinT + y * cosT;
+          const d = (yr - ys) / (2 * radius[i]) + 0.5;
+          if (d > 0) wetted += d > 1 ? 1 : d;
+        }
+      }
+      cx /= b.n;
+      cy /= b.n;
+      const gx = w2 * cx;
+      const gy = w2 * cy + g * (1 - (beta * wetted) / b.n);
+      const gm = Math.hypot(gx, gy) || 1e-9;
+      b.nx = gx / gm;
+      b.ny = gy / gm;
+      b.weight = (mass * gm) / g;
+      b.height = -(cx * b.nx + cy * b.ny);
+      b.incoming = 0;
+      b.idx = bi;
+    }
+
+    // Top of the pile first, so a piece has everything on it before it hands
+    // its load down. Only pieces lower than it can carry it, which also keeps
+    // a pair whose contact normals disagree from passing load in a loop.
+    order.length = 0;
+    for (const b of bodies) order.push(b);
+    order.sort((a, b) => b.height - a.height);
+    const { contactX, contactY, contactN } = this;
+    const perSub = 1 / sub;
+    const perPair = 1 / (sub * this.cfg.pairIterations);
+    for (const a of order) {
+      const total = a.weight + a.incoming;
+      let sum = 0;
+      let wall = 0;
+      if (a.wallN > 0) {
+        const l = Math.hypot(a.wallX, a.wallY) || 1;
+        const align = (a.wallX * a.nx + a.wallY * a.ny) / l;
+        if (align > k.align) wall = align * a.wallN * perSub;
+      }
+      sum += wall;
+      for (let bj = 0; bj < n; bj++) {
+        share[bj] = 0;
+        const b = bodies[bj];
+        if (b === a || b.height >= a.height) continue;
+        const lo = a.idx < bj ? a.idx : bj;
+        const hi = a.idx < bj ? bj : a.idx;
+        const key = lo * B + hi;
+        const cnt = contactN[key];
+        if (!cnt) continue;
+        const sgn = a.idx < bj ? 1 : -1;
+        const l = Math.hypot(contactX[key], contactY[key]) || 1;
+        const align = (sgn * (contactX[key] * a.nx + contactY[key] * a.ny)) / l;
+        if (align <= k.align) continue;
+        share[bj] = align * cnt * perPair;
+        sum += share[bj];
+      }
+      if (sum <= 0) continue;
+      for (let bj = 0; bj < n; bj++) {
+        if (share[bj] > 0) bodies[bj].incoming += (total * share[bj]) / sum;
+      }
+    }
+    contactX.fill(0);
+    contactY.fill(0);
+    contactN.fill(0);
+
+    const kPress = 1 - Math.exp(-dt / k.tauPress);
+    const kRelax = 1 - Math.exp(-dt / k.tauRelax);
+    for (const b of bodies) {
+      const stress = (b.incoming + 0.5 * b.weight) / b.n;
+      b.load += (stress - b.load) * (stress > b.load ? kPress : kRelax);
+      const over = b.load - k.s0;
+      b.press = over > 0 ? k.max * (1 - Math.exp(-over / k.s1)) : 0;
+      b.wallN = 0;
+      b.wallX = 0;
+      b.wallY = 0;
+
+      const cons = b.tpl.constraints;
+      const cend = b.cStart + b.cN;
+      if (b.press < 0.005) {
+        for (let c = b.cStart, j = 0; c < cend; c++, j++) cRest[c] = cons[j].rest;
+        continue;
+      }
+      // A uniaxial squeeze by s along n takes a unit vector u to length
+      // sqrt(1 - (1 - s^2)(u.n)^2). Every constraint follows that one affine
+      // map, so the structural and shear members agree instead of fighting.
+      const sq = 1 - b.press;
+      const q = 1 - sq * sq;
+      const nx = b.nx;
+      const ny = b.ny;
+      for (let c = b.cStart, j = 0; c < cend; c++, j++) {
+        const ia = cA[c];
+        const ib = cB[c];
+        const dx = px[ib] - px[ia];
+        const dy = py[ib] - py[ia];
+        const L2 = dx * dx + dy * dy;
+        if (L2 < 1e-12) {
+          cRest[c] = cons[j].rest;
+          continue;
+        }
+        const p = dx * nx + dy * ny;
+        cRest[c] = cons[j].rest * Math.sqrt(1 - (q * p * p) / L2);
+      }
+    }
   }
 
   solveDistance() {
