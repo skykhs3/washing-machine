@@ -70,7 +70,7 @@ export class Water {
     // How much of the water the wall has taken up and is carrying round, 0 to 1.
     this.carried = 0;
     this.solvedLevel = -1;
-    this.solvedOmega = NaN;
+    this.solvedW2 = NaN;
     this.setSurface(0);
   }
 
@@ -88,7 +88,7 @@ export class Water {
   // vertical. Flat, that is the gap between the surface and the top of the
   // drum; curved, it is the room left inside the arc.
   get airDepth() {
-    if (this.flat) return this.levelY + 1;
+    if (this.flat) return Math.max(0, this.levelY + 1);
     return Math.max(0, this.rhoS - Math.max(0, -this.yc - 1));
   }
 
@@ -102,12 +102,14 @@ export class Water {
   // no area solve of its own. It always has its root below Fr = 3, where the
   // carry factor has already saturated and the equation reads 2 depth > 0.
   ringOmega(level) {
-    if (level <= 0) return Infinity;
+    // Negated so a level that is not a number lands here too: no water to
+    // close, and nothing for a caller to mark.
+    if (!(level > 0)) return Infinity;
     const depth = 1 - Math.sqrt(Math.max(0, 1 - capArea(1 - 2 * level) / Math.PI));
     if (depth <= 0) return Infinity;
     let lo = 0;
     let hi = FR_CARRY_HI;
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 24; i++) {
       const mid = (lo + hi) * 0.5;
       const at = depth * mid + (1 - depth) * smoothstep(FR_CARRY_LO, FR_CARRY_HI, mid);
       if (at < 1) lo = mid;
@@ -194,15 +196,18 @@ export class Water {
       this.solvedLevel = -1;
       return;
     }
-    if (this.level === this.solvedLevel && omega === this.solvedOmega) return;
+    // Keyed on w^2, since that is all the surface depends on: reversing the
+    // drum at the same speed must not force the solve again.
+    if (this.level === this.solvedLevel && w2 === this.solvedW2) return;
     this.solvedLevel = this.level;
-    this.solvedOmega = omega;
+    this.solvedW2 = w2;
     this.flat = false;
     this.yc = -d;
     const air = Math.PI - water;
     let lo = Math.max(0, d - 1);
     let hi = d + 1;
-    for (let i = 0; i < 40; i++) {
+    // The bracket is at most FLAT_D + 1 wide, so 28 halvings leave under 2e-7.
+    for (let i = 0; i < 28; i++) {
       const mid = (lo + hi) * 0.5;
       if (lensArea(d, mid) < air) lo = mid;
       else hi = mid;

@@ -2,9 +2,9 @@ const TWO_PI = Math.PI * 2;
 const SEGMENTS = 14;
 const RING_SEGMENTS = 48;
 const HALF_SPAN = 1.3;
-// The drum clips at radius 1. The arc itself ends on the wall, so its two end
-// points are pushed out to here and the fill closes round the back at the same
-// radius, which keeps the seam outside the clip.
+// The drum clips at radius 1. The arc itself ends on the wall, so a radial stub
+// runs out to here off each end and the fill closes round the back at the same
+// radius, which keeps the seam and the head's round cap outside the clip.
 const OUTER = 1.3;
 
 export class WaterLayer {
@@ -48,36 +48,50 @@ export class WaterLayer {
     const n = ringed ? RING_SEGMENTS : SEGMENTS;
     const span = ringed ? Math.PI : water.surfaceSpan;
     // The spline runs through the midpoints between samples, which sit a
-    // sagitta inside the true circle. On a thin ring that bias is a good
-    // fraction of the film, so the radius is pushed back out by it.
-    const comp = ringed ? 1 / Math.cos(span / n) : 1;
+    // sagitta inside the true circle, so the radius is pushed back out by it.
+    // An open arc spans nearly as much angle as a ring by the time the water
+    // is about to close, so it needs the same correction.
+    const comp = 1 / Math.cos(span / n);
     const at = (i) => {
       // The ends of an open arc land on the wall, so the ripple is tapered out
-      // there rather than left to lift them off it, and they are then pushed
-      // out past the clip so the fill has something to close against.
+      // there rather than left to lift them off it.
       const u = i / n;
       const th = -span + u * 2 * span;
       const taper = ringed ? 1 : Math.sin(Math.PI * u);
       const rho = (rhoS + this.ripple(rhoS * th, time, amp, swirl) * taper) * comp;
-      let x = rho * Math.sin(th);
-      let y = yc + rho * Math.cos(th);
-      if (!ringed && (i === 0 || i === n)) {
-        const r = Math.sqrt(x * x + y * y) || 1e-6;
-        x *= OUTER / r;
-        y *= OUTER / r;
-      }
-      return [x, y];
+      return [rho * Math.sin(th), yc + rho * Math.cos(th)];
     };
-    this.smooth(ctx, at, n);
-    if (ringed) ctx.closePath();
+    if (ringed) {
+      this.smooth(ctx, at, n);
+      ctx.closePath();
+      return;
+    }
+    // The seam past the clip is a stub along the end's own radius, added
+    // outside the spline: pushing the end samples out to OUTER instead drags
+    // the anchor and the first midpoint with them, which lifts the drawn
+    // surface off the wall by a good fraction of the drum.
+    this.smooth(ctx, at, n, this.beyond(at(0)), this.beyond(at(n)));
+  }
+
+  // The same point carried out to the clip margin along its own radius.
+  beyond(p) {
+    const r = Math.hypot(p[0], p[1]) || 1e-6;
+    return [(p[0] * OUTER) / r, (p[1] * OUTER) / r];
   }
 
   // Quadratic through the sample midpoints, so the surface reads as a curve
-  // rather than a fan of straight segments.
-  smooth(ctx, at, n) {
+  // rather than a fan of straight segments. `pre` and `post` extend the ends
+  // without becoming anchors, so the spline still starts and finishes on the
+  // samples it was given.
+  smooth(ctx, at, n, pre = null, post = null) {
     let [x0, y0] = at(0);
     let [x1, y1] = at(1);
-    ctx.moveTo(x0, y0);
+    if (pre) {
+      ctx.moveTo(pre[0], pre[1]);
+      ctx.lineTo(x0, y0);
+    } else {
+      ctx.moveTo(x0, y0);
+    }
     ctx.lineTo((x0 + x1) / 2, (y0 + y1) / 2);
     for (let i = 1; i < n; i++) {
       const [x2, y2] = at(i + 1);
@@ -86,6 +100,7 @@ export class WaterLayer {
       y1 = y2;
     }
     ctx.lineTo(x1, y1);
+    if (post) ctx.lineTo(post[0], post[1]);
   }
 
   // The water itself. An open surface closes round the bottom of the drum; a
