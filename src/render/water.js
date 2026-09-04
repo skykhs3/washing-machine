@@ -1,6 +1,6 @@
 const TWO_PI = Math.PI * 2;
 const SEGMENTS = 14;
-const RING_SEGMENTS = 30;
+const RING_SEGMENTS = 48;
 const HALF_SPAN = 1.3;
 // The drum clips at radius 1. The arc itself ends on the wall, so its two end
 // points are pushed out to here and the fill closes round the back at the same
@@ -20,8 +20,12 @@ export class WaterLayer {
     return amp * Math.sin(5.5 * s + ph) + amp * 0.45 * Math.sin(11 * s - 1.7 * ph);
   }
 
+  // A wave cannot stand taller than the water is deep, so on a thin film - the
+  // ring the water closes into at speed - the ripple comes down with it rather
+  // than doubling the film's drawn thickness.
   waveAmp(water) {
-    return 0.008 + 0.018 * Math.min(1, Math.abs(water.swirl) / 2.5);
+    const amp = 0.008 + 0.018 * Math.min(1, Math.abs(water.swirl) / 2.5);
+    return Math.min(amp, 0.3 * water.waterDepth);
   }
 
   // Half the angle, about the equipotential centre, that the surface subtends
@@ -54,6 +58,10 @@ export class WaterLayer {
     const { yc, rhoS, ringed } = water;
     const n = ringed ? RING_SEGMENTS : SEGMENTS;
     const span = ringed ? Math.PI : this.wallSpan(water);
+    // The spline runs through the midpoints between samples, which sit a
+    // sagitta inside the true circle. On a thin ring that bias is a good
+    // fraction of the film, so the radius is pushed back out by it.
+    const comp = ringed ? 1 / Math.cos(span / n) : 1;
     const at = (i) => {
       // The ends of an open arc land on the wall, so the ripple is tapered out
       // there rather than left to lift them off it, and they are then pushed
@@ -61,7 +69,7 @@ export class WaterLayer {
       const u = i / n;
       const th = -span + u * 2 * span;
       const taper = ringed ? 1 : Math.sin(Math.PI * u);
-      const rho = rhoS + this.ripple(rhoS * th, time, amp, swirl) * taper;
+      const rho = (rhoS + this.ripple(rhoS * th, time, amp, swirl) * taper) * comp;
       let x = rho * Math.sin(th);
       let y = yc + rho * Math.cos(th);
       if (!ringed && (i === 0 || i === n)) {

@@ -21,7 +21,19 @@
 // keeps the two-circle area out of the range where g/w^2 overflows.
 const FLAT_D = 50;
 
+// Froude numbers between which the water goes from falling off the top of the
+// drum to being carried all the way round with it. Below the first, gravity
+// still wins at the top and there is nothing to average; above the second the
+// water turns with the wall.
+const FR_CARRY_LO = 1;
+const FR_CARRY_HI = 3;
+
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
+
+const smoothstep = (a, b, x) => {
+  const t = clamp((x - a) / (b - a), 0, 1);
+  return t * t * (3 - 2 * t);
+};
 
 // Area of the unit disk below the level line y = h.
 function capArea(h) {
@@ -55,6 +67,8 @@ export class Water {
     this.flat = true;
     this.yc = 0;
     this.rhoS = 0;
+    // How much of the water the wall has taken up and is carrying round, 0 to 1.
+    this.carried = 0;
     this.solvedLevel = -1;
     this.solvedOmega = NaN;
     this.setSurface(0);
@@ -120,8 +134,25 @@ export class Water {
 
   setSurface(omega) {
     const w2 = omega * omega;
-    const d = w2 > 0 ? this.gravity / w2 : Infinity;
-    if (d >= FLAT_D || this.level <= 0) {
+    this.carried = smoothstep(FR_CARRY_LO, FR_CARRY_HI, w2 / this.gravity);
+    if (this.level <= 0) {
+      this.flat = true;
+      this.yc = -Infinity;
+      this.rhoS = Infinity;
+      return;
+    }
+    const water = capArea(this.levelY);
+    // The drum axis is horizontal, so once the wall carries the water round,
+    // gravity in the drum's own frame turns once per revolution. A film held on
+    // by the centrifugal field then varies in thickness by only h/Fr about its
+    // mean, which is the same picture as an equipotential centre sitting h
+    // times as far off the axis instead of the full g/w^2. Without this a film
+    // at speed pools into a crescent and leaves the top of the wall dry, where
+    // a real one wraps the whole of it.
+    const depth = 1 - Math.sqrt(Math.max(0, 1 - water / Math.PI));
+    const keep = 1 - (1 - depth) * this.carried;
+    const d = w2 > 0 ? (this.gravity / w2) * keep : Infinity;
+    if (d >= FLAT_D) {
       this.flat = true;
       this.yc = -d;
       this.rhoS = Infinity;
@@ -132,7 +163,7 @@ export class Water {
     this.solvedOmega = omega;
     this.flat = false;
     this.yc = -d;
-    const air = Math.PI - capArea(this.levelY);
+    const air = Math.PI - water;
     let lo = Math.max(0, d - 1);
     let hi = d + 1;
     for (let i = 0; i < 40; i++) {
@@ -150,11 +181,15 @@ export class Water {
       ? (manual ? c.manualFillRate : c.fillRate)
       : (manual ? c.manualDrainRate : c.drainRate)) * dt;
     this.level += d > rate ? rate : d < -rate ? -rate : d;
+    this.setSurface(omega);
 
-    const tiltT = Math.max(-c.tiltMax, Math.min(c.tiltMax, c.tiltGain * omega));
+    // Water carried round with the wall does not slosh against it, and a
+    // surface closing on the drum axis has no direction left to tilt, so the
+    // lag that leans a level surface fades out with the same factor.
+    const lean = 1 - this.carried;
+    const tiltT = Math.max(-c.tiltMax, Math.min(c.tiltMax, c.tiltGain * omega)) * lean;
     this.tilt += (tiltT - this.tilt) * (1 - Math.exp(-dt / c.tiltTau));
     const swirlT = c.swirlRatio * omega * Math.min(1, this.level / 0.15);
     this.swirl += (swirlT - this.swirl) * (1 - Math.exp(-dt / c.swirlTau));
-    this.setSurface(omega);
   }
 }
