@@ -6,14 +6,17 @@ export function initPanel(root, app) {
     manual: root.querySelector('#modeManual'),
     pause: root.querySelector('#pause'),
     rpm: root.querySelector('#rpm'),
+    rpmTrack: root.querySelector('#rpm').closest('.track'),
     rpmOut: root.querySelector('#rpmOut'),
     foam: root.querySelector('#foam'),
     foamOut: root.querySelector('#foamOut'),
     dir: root.querySelector('#dir'),
     water: root.querySelector('#water'),
+    waterOut: root.querySelector('#waterOut'),
+    prev: root.querySelector('#prev'),
     skip: root.querySelector('#skip'),
     lang: root.querySelector('#lang'),
-    lowPower: root.querySelector('#lowPower'),
+    resetAll: root.querySelector('#resetAll'),
     sound: root.querySelector('#sound'),
     volume: root.querySelector('#volume'),
     quickPause: root.querySelector('#quickPause'),
@@ -27,10 +30,11 @@ export function initPanel(root, app) {
   els.rpm.addEventListener('input', () => app.setManualRpm(Number(els.rpm.value)));
   els.foam.addEventListener('input', () => app.setFoam(Number(els.foam.value) / 100));
   els.dir.addEventListener('click', () => app.toggleDirection());
-  els.water.addEventListener('click', () => app.toggleWater());
+  els.water.addEventListener('input', () => app.setWaterLevel(Number(els.water.value) / 100));
+  els.prev.addEventListener('click', () => app.prevStage());
   els.skip.addEventListener('click', () => app.skipStage());
   els.lang.addEventListener('click', () => app.toggleLang());
-  els.lowPower.addEventListener('click', () => app.toggleLowPower());
+  els.resetAll.addEventListener('click', () => app.resetAll());
   // A press while the output is blocked asks for sound rather than for silence,
   // and that has to be read at pointerdown. The window gesture listener resumes
   // the context before the click lands, and the poll can repaint the button in
@@ -51,6 +55,8 @@ export function initPanel(root, app) {
   els.volume.addEventListener('input', () => app.setVolume(Number(els.volume.value) / 100));
 
   let lastRpm = -1;
+  let lastWater = -1;
+  let lastMark = -1;
   return {
     refresh() {
       const s = app.state;
@@ -61,12 +67,8 @@ export function initPanel(root, app) {
       els.pause.textContent = t(s.lang, s.paused ? 'resume' : 'pause');
       els.quickPause.setAttribute('aria-pressed', String(s.paused));
       els.quickPause.setAttribute('aria-label', t(s.lang, s.paused ? 'resume' : 'pause'));
-      // The button names what the next press does, so it reads Drain while
-      // the tub is full and Fill while it is empty, in AUTO too.
-      els.water.textContent = t(s.lang, app.waterOn() ? 'drain' : 'fill');
-      els.water.disabled = !manual;
+      els.prev.disabled = manual;
       els.skip.disabled = manual;
-      els.lowPower.setAttribute('aria-pressed', String(s.low));
       // aria-pressed stays the user's intent; the slash also shows when the
       // output is still blocked and needs a gesture. The dock copy and the
       // panel copy always read the same.
@@ -84,9 +86,11 @@ export function initPanel(root, app) {
       els.foam.setAttribute('aria-valuetext', `${foam}%`);
       els.foamOut.textContent = `${foam}%`;
       els.rpm.max = String(app.maxRpm());
-      this.syncRpm(true);
+      this.syncLive(true);
     },
-    syncRpm(force = false) {
+    // The motor and water readouts follow the simulation, so in AUTO they show
+    // what the program is doing and in MANUAL what the user asked for.
+    syncLive(force = false) {
       const s = app.state;
       const rpm = s.mode === 'manual' ? s.manual.rpm : Math.round(Math.abs(app.currentTargetRpm()));
       const dir = s.mode === 'manual' ? s.manual.dir : app.currentDirection();
@@ -97,6 +101,25 @@ export function initPanel(root, app) {
         els.rpmOut.textContent = String(rpm);
       }
       els.dir.setAttribute('aria-pressed', String(dir < 0));
+      // Whatever the water slider is showing: the setting in MANUAL, the live
+      // level in AUTO where that slider is a gauge.
+      const level = s.mode === 'manual' ? s.manual.waterLevel : app.currentWaterLevel();
+      // Where that much water turns into a ring, so the mark answers for the
+      // setting the water slider holds rather than for the water that has
+      // arrived so far. Otherwise the two controls disagree for a whole fill.
+      const mark = app.ringRpm(level) / app.maxRpm();
+      if (force || Math.abs(mark - lastMark) > 0.002) {
+        lastMark = mark;
+        els.rpmTrack.style.setProperty('--mark', String(Math.min(1, mark)));
+        els.rpmTrack.style.setProperty('--mark-on', mark <= 1 ? '1' : '0');
+      }
+      const water = Math.round(level * 100);
+      if (force || water !== lastWater) {
+        lastWater = water;
+        els.water.value = String(water);
+        els.water.setAttribute('aria-valuetext', `${water}%`);
+        els.waterOut.textContent = `${water}%`;
+      }
     },
   };
 }

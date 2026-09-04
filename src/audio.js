@@ -740,4 +740,46 @@ export class AudioEngine {
       osc.stop(t + 0.12);
     }
   }
+
+  // End of the course: the little tune a home machine plays when it is done,
+  // rather than a bare buzzer. Each note rings well past its step so the phrase
+  // sings instead of clicking, and the tonic at the end is held.
+  endChime() {
+    if (!this.ctx || !this.master || !this.enabled) return;
+    const c = this.ctx;
+    // [frequency, step]. Two phrases in C major and a held tonic.
+    const phrase = [
+      [783.99, 0.18], [1046.50, 0.18], [1318.51, 0.18], [1567.98, 0.30],
+      [1318.51, 0.18], [1046.50, 0.36],
+      [880.00, 0.18], [1046.50, 0.18], [1174.66, 0.18], [1318.51, 0.30],
+      [1174.66, 0.18], [1046.50, 1.10],
+    ];
+    let t = c.currentTime + 0.02;
+    for (let i = 0; i < phrase.length; i++) {
+      const [freq, step] = phrase[i];
+      const last = i === phrase.length - 1;
+      const ring = last ? 1.5 : Math.min(0.5, step * 2.2);
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(last ? 0.1 : 0.08, t + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + ring);
+      g.connect(this.master);
+      // A moulded console speaker, so a triangle with a couple of partials
+      // under a lowpass rather than a pure tone.
+      const f = this.filter('lowpass', 5000, 0.7);
+      f.connect(g);
+      for (const [mult, level, type] of [[1, 1, 'triangle'], [2, 0.28, 'sine'], [3, 0.1, 'sine']]) {
+        const osc = c.createOscillator();
+        osc.type = type;
+        osc.frequency.value = freq * mult;
+        const og = c.createGain();
+        og.gain.value = level;
+        osc.connect(og);
+        og.connect(f);
+        osc.start(t);
+        osc.stop(t + ring + 0.02);
+      }
+      t += step;
+    }
+  }
 }

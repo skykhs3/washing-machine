@@ -49,12 +49,12 @@ export class LifterLayer {
     ctx.restore();
   }
 
-  draw(ctx, theta, dTheta, low) {
+  draw(ctx, theta, dTheta) {
     const ad = Math.abs(dTheta);
     const ringStart = 0.4;
     const ringFull = 0.7;
     if (ad < ringFull) {
-      const n = ad < 0.06 ? 1 : low ? 2 : Math.min(6, Math.ceil(ad / 0.07));
+      const n = ad < 0.06 ? 1 : Math.min(6, Math.ceil(ad / 0.07));
       ctx.save();
       ctx.globalAlpha = 1 / n;
       for (let s = 0; s < n; s++) {

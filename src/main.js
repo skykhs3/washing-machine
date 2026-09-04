@@ -9,7 +9,7 @@ import { Viewport } from './render/viewport.js';
 import { Renderer } from './render/renderer.js';
 import { AudioEngine } from './audio.js';
 import { STRINGS, detectLang, applyI18n, t, stageName } from './i18n.js';
-import { loadState, createSaver } from './ui/storage.js';
+import { loadState, clearState, createSaver } from './ui/storage.js';
 import { initPanelToggle } from './ui/panelToggle.js';
 import { initCanvasTap } from './ui/input.js';
 import { initLaundryPicker } from './ui/laundryPicker.js';
@@ -42,7 +42,7 @@ const vp = new Viewport(canvas);
 const world = new World(CONFIG.physics, CONFIG.laundry);
 const drum = new Drum(CONFIG.physics);
 const motor = new Motor(CONFIG.motor);
-const water = new Water(CONFIG.water);
+const water = new Water(CONFIG.water, CONFIG.physics.gravity);
 const cycle = new Cycle(CONFIG.cycle);
 const foam = new Foam(CONFIG.foam);
 const renderer = new Renderer(vp, CONFIG);
@@ -53,19 +53,16 @@ if (reduceMotion) {
   foam.still = true;
 }
 
-const lowHint = (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 4;
 const state = {
   mode: saved?.mode === 'manual' ? 'manual' : 'auto',
   paused: false,
   manual: {
     rpm: clamp(Math.round(saved?.manual?.rpm ?? 45), 0, motor.maxRpm),
     dir: saved?.manual?.dir === -1 ? -1 : 1,
-    water: Boolean(saved?.manual?.water),
+    waterLevel: clamp(numberOr(saved?.manual?.waterLevel, CONFIG.water.manualLevel), 0, 1),
   },
   lang: detectLang(saved?.lang),
   panelOpen: typeof saved?.panelOpen === 'boolean' ? saved.panelOpen : undefined,
-  low: saved?.quality ? saved.quality === 'low' : lowHint,
-  qualityUserSet: Boolean(saved?.quality),
   // Detergent dose on the foam slider, 0..1.
   foam: clamp(numberOr(saved?.foam, CONFIG.foam.defaultLevel), 0, 1),
   sound: {
@@ -90,13 +87,12 @@ const save = createSaver(() => ({
   panelOpen: state.panelOpen,
   sound: state.sound,
   foam: state.foam,
-  quality: state.qualityUserSet ? (state.low ? 'low' : 'high') : undefined,
 }));
 
 const app = {
   state,
   laundryMax() {
-    return state.low ? CONFIG.laundry.maxLow : CONFIG.laundry.max;
+    return CONFIG.laundry.max;
   },
   laundryCount() {
     return itemsIn(pieceTally());
@@ -118,8 +114,13 @@ const app = {
     const w = Math.abs(motor.omega) > 0.05 ? motor.omega : motor.target;
     return w < 0 ? -1 : 1;
   },
-  waterOn() {
-    return state.mode === 'manual' ? state.manual.water : water.target > 0;
+  currentWaterLevel() {
+    return water.level;
+  },
+  // Speed at which the given level would close into a ring. Infinity for an
+  // empty drum, where there is nothing to mark.
+  ringRpm(level) {
+    return (water.ringOmega(level) * 60) / (2 * Math.PI);
   },
   soundReady() {
     return !audio.needsGesture;
@@ -167,7 +168,7 @@ const app = {
     if (mode === 'manual') {
       state.manual.rpm = clamp(Math.round(Math.abs(motor.targetRpm)), 0, motor.maxRpm);
       state.manual.dir = this.currentDirection();
-      state.manual.water = water.target > 0;
+      state.manual.waterLevel = water.level;
     }
     state.mode = mode;
     save();
@@ -185,22 +186,22 @@ const app = {
     if (state.mode !== 'manual') this.setMode('manual');
     state.manual.rpm = clamp(Math.round(rpm), 0, motor.maxRpm);
     save();
-    panel.syncRpm(true);
+    panel.syncLive(true);
   },
   setDirection(dir) {
     if (state.mode !== 'manual') this.setMode('manual');
     state.manual.dir = dir < 0 ? -1 : 1;
     save();
-    panel.syncRpm(true);
+    panel.syncLive(true);
   },
   toggleDirection() {
     this.setDirection(state.mode === 'manual' ? -state.manual.dir : -this.currentDirection());
   },
-  toggleWater() {
+  setWaterLevel(v) {
     if (state.mode !== 'manual') this.setMode('manual');
-    state.manual.water = !state.manual.water;
+    state.manual.waterLevel = clamp(v, 0, 1);
     save();
-    refreshUi();
+    panel.syncLive(true);
   },
   // The foam slider is the detergent dose. It works in both modes, so unlike
   // the motor controls it does not switch to MANUAL.
@@ -210,12 +211,23 @@ const app = {
     refreshUi();
   },
   skipStage() {
+    this.stepStage(1);
+  },
+  prevStage() {
+    this.stepStage(-1);
+  },
+  // The tub lands at whatever the stage before the new one leaves behind, so
+  // skipping a fill lands on a full tub instead of carrying the fill into the
+  // next stage, skipping a drain lands on an empty one, and rewinding into a
+  // drain lands on the full tub it is there to empty. Both wrap around the
+  // ends of the program.
+  stepStage(dir) {
     if (state.mode !== 'auto') return;
-    // Finish what the stage was doing to the water before leaving it, so
-    // skipping a fill lands on a full tub instead of carrying the fill into
-    // the next stage, and skipping a drain lands on an empty one.
-    water.level = cycle.targetLevel();
-    cycle.skip();
+    cycle.step(dir);
+    water.level = cycle.entryLevel();
+    // Arriving at a stage backwards is neither the course ending nor a course
+    // starting, so the stage's arrival sounds do not belong to a rewind.
+    if (dir < 0) lastStageIdx = cycle.idx;
   },
   toggleLang() {
     state.lang = state.lang === 'ko' ? 'en' : 'ko';
@@ -223,12 +235,10 @@ const app = {
     save();
     refreshUi();
   },
-  toggleLowPower() {
-    state.low = !state.low;
-    state.qualityUserSet = true;
-    applyQuality();
-    save();
-    refreshUi();
+  resetAll() {
+    save.cancel();
+    clearState();
+    location.reload();
   },
   // wasBlocked is the slash the button was showing when it was pressed. That
   // press asks for sound rather than for silence, and it is the press that
@@ -312,7 +322,6 @@ initCanvasTap(canvas, vp, (tap) => {
   }
 });
 applyI18n(document, state.lang);
-applyQuality();
 
 const initial = Array.isArray(saved?.laundry) ? saved.laundry : defaultLoad();
 // Saved loads are stored as pieces, and the cap is in items, so let
@@ -327,16 +336,6 @@ function refreshUi() {
   panel.refresh();
   picker.refresh();
   soundBlocked = state.sound.enabled && audio.needsGesture;
-}
-
-function applyQuality() {
-  vp.setMaxDpr(state.low ? 1 : 2);
-  renderer.setLowQuality(state.low);
-  foam.max = state.low ? CONFIG.foam.maxLow : CONFIG.foam.max;
-  while (app.laundryCount() > app.laundryMax()) {
-    if (spawnQueue.length) spawnQueue.pop();
-    else world.removeLast();
-  }
 }
 
 // A run of the same multi-piece type in the starting load is one set, so it
@@ -415,15 +414,15 @@ function simStep(dt) {
     water.target = cycle.targetLevel();
   } else {
     motor.setTargetRpm(state.manual.rpm * state.manual.dir, CONFIG.motor.accelManual);
-    water.target = state.manual.water ? CONFIG.water.manualLevel : 0;
+    water.target = state.manual.waterLevel;
   }
   motor.update(dt);
   drum.omega = motor.omega;
-  water.update(dt, drum.omega);
+  water.update(dt, drum.omega, state.mode === 'manual');
   tickSpawn(dt);
   world.step(dt, drum, water);
   if (state.mode === 'auto' && cycle.idx !== lastStageIdx) {
-    if (cycle.stage.id === 'done') audio.beep(3);
+    if (cycle.stage.id === 'done') audio.endChime();
     // The interlock engages as a course starts, just before the inlet opens.
     if (cycle.stage.id === 'fill') audio.doorLock();
     lastStageIdx = cycle.idx;
@@ -471,10 +470,6 @@ let uiTimer = 0;
 let liveTimer = 0;
 let fpsAcc = 0;
 let fpsCount = 0;
-let probeTime = 0;
-let probeAcc = 0;
-let probeCount = 0;
-let probed = false;
 
 function frame(now) {
   rafId = requestAnimationFrame(frame);
@@ -551,7 +546,7 @@ function frame(now) {
   uiTimer += frameDt;
   if (uiTimer > 0.1) {
     uiTimer = 0;
-    panel.syncRpm();
+    panel.syncLive();
     if (soundBlocked !== (state.sound.enabled && audio.needsGesture)) refreshUi();
   }
   liveTimer += frameDt;
@@ -559,22 +554,6 @@ function frame(now) {
     liveTimer = 0;
     const say = STRINGS[state.lang]?.live ?? STRINGS.en.live;
     live.textContent = say(info.paused ? info.pausedLabel : info.stageLabel, info.manual ? '-' : formatTime(info.remaining), Math.round(Math.abs(info.rpm)));
-  }
-
-  if (!probed && !state.qualityUserSet && !state.low) {
-    probeTime += frameDt;
-    if (probeTime > 1) {
-      probeAcc += frameDt;
-      probeCount++;
-    }
-    if (probeTime > 4) {
-      probed = true;
-      if (probeCount > 0 && probeAcc / probeCount > 0.022) {
-        state.low = true;
-        applyQuality();
-        refreshUi();
-      }
-    }
   }
 }
 

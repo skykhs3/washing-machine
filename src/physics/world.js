@@ -281,7 +281,6 @@ export class World {
   // air; strength is the approach speed of the hardest-hitting particle.
   collectImpacts(h, water) {
     const { px, py, flag, impact, cnx, cny } = this;
-    const ys = water.surfaceY;
     const cosT = Math.cos(water.tilt);
     const sinT = Math.sin(water.tilt);
     for (const b of this.bodies) {
@@ -309,8 +308,9 @@ export class World {
       if (b.airTime >= 0.05 && maxImp > 1.5 && b.cooldown <= 0 && this.events.length < 32) {
         const cx = sx / b.n;
         const cy = sy / b.n;
+        const xr = cx * cosT + cy * sinT;
         const yr = -cx * sinT + cy * cosT;
-        const splash = water.active && yr > ys - 0.05;
+        const splash = water.active && water.depthAt(xr, yr) > -0.05;
         if (!splash || maxImp > 3) {
           this.events.push({ type: 'impact', strength: maxImp, wet: b.wet, splash, x: cx, y: cy });
           b.cooldown = splash ? 0.6 : 0.4;
@@ -327,7 +327,6 @@ export class World {
     const hasWater = water.active;
     const cosT = Math.cos(water.tilt);
     const sinT = Math.sin(water.tilt);
-    const ys = water.surfaceY;
     const swirl = water.swirl;
     const wc = water.cfg;
     const beta = wc.buoyancy;
@@ -350,8 +349,9 @@ export class World {
       let ay = g;
       let inWater = false;
       if (hasWater) {
+        const xr = x * cosT + y * sinT;
         const yr = -x * sinT + y * cosT;
-        let s = (yr - ys) / (2 * radius[i]) + 0.5;
+        let s = water.depthAt(xr, yr) / (2 * radius[i]) + 0.5;
         if (s > 0) {
           if (s > 1) s = 1;
           inWater = true;
@@ -415,7 +415,6 @@ export class World {
     const hasWater = water.active;
     const cosT = Math.cos(water.tilt);
     const sinT = Math.sin(water.tilt);
-    const ys = water.surfaceY;
     const beta = water.cfg.buoyancy;
     const n = bodies.length;
     const h = this.lastH;
@@ -459,8 +458,9 @@ export class World {
         const vy = (y - (rs * ppx[i] + rc * ppy[i])) * invH;
         moving += Math.sqrt(vx * vx + vy * vy);
         if (hasWater) {
+          const xr = x * cosT + y * sinT;
           const yr = -x * sinT + y * cosT;
-          const d = (yr - ys) / (2 * radius[i]) + 0.5;
+          const d = water.depthAt(xr, yr) / (2 * radius[i]) + 0.5;
           if (d > 0) wetted += d > 1 ? 1 : d;
         }
       }

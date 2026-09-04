@@ -76,17 +76,24 @@
           <button type="button" id="pause" aria-pressed="false" data-i18n="pause">Pause</button>
         </div>
         <label class="slider">
-          <span class="slider-label"><span data-i18n="rpm">RPM</span> <output id="rpmOut" for="rpm">0</output></span>
-          <input id="rpm" type="range" min="0" max="240" step="5" value="0" aria-valuetext="0 RPM">
+          <span class="slider-name" data-i18n="rpm">RPM</span>
+          <span class="track regime"><input id="rpm" type="range" min="0" max="240" step="5" value="0" aria-valuetext="0 RPM" data-i18n-title="rpmHint"></span>
+          <output id="rpmOut" for="rpm">0</output>
         </label>
         <label class="slider">
-          <span class="slider-label"><span data-i18n="foam">Foam</span> <output id="foamOut" for="foam">35%</output></span>
-          <input id="foam" type="range" min="0" max="100" step="5" value="35" aria-valuetext="35%" data-i18n-title="foamHint">
+          <span class="slider-name" data-i18n="foam">Foam</span>
+          <span class="track" style="--mark: .35"><input id="foam" type="range" min="0" max="100" step="5" value="35" aria-valuetext="35%" data-i18n-title="foamHint"></span>
+          <output id="foamOut" for="foam">35%</output>
+        </label>
+        <label class="slider">
+          <span class="slider-name" data-i18n="water">Water</span>
+          <span class="track" style="--mark: .35"><input id="water" type="range" min="0" max="100" step="1" value="35" aria-valuetext="35%" data-i18n-title="waterHint"></span>
+          <output id="waterOut" for="water">35%</output>
         </label>
         <div class="row">
           <button type="button" id="dir" aria-pressed="false" data-i18n="reverse">Reverse</button>
-          <button type="button" id="water">Fill</button>
-          <button type="button" id="skip" data-i18n="skip">Skip stage</button>
+          <button type="button" id="prev" data-i18n="prev" data-i18n-title="prevHint">Prev</button>
+          <button type="button" id="skip" data-i18n="skip" data-i18n-title="skipHint">Skip</button>
         </div>
         <div class="row sound">
           <button type="button" id="sound" class="sound-btn" aria-pressed="false" aria-label="Sound" data-i18n-label="sound" data-i18n-title="muteSwitchHint">
@@ -96,7 +103,7 @@
         </div>
         <div class="row small">
           <button type="button" id="lang" aria-label="Switch language" data-i18n-label="switchLang">한국어</button>
-          <button type="button" id="lowPower" aria-pressed="false" data-i18n="lowPower" data-i18n-title="lowPowerHint">Low graphics</button>
+          <button type="button" id="resetAll" data-i18n="resetAll" data-i18n-title="resetAllHint">Reset all</button>
           <a class="link" href="https://github.com/skykhs3/washing-machine" target="_blank" rel="noopener">GitHub</a>
         </div>
       </section>

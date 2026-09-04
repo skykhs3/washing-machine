@@ -169,11 +169,11 @@ export function compileDesign(tpl, design) {
   const base = hexToRgb(design.base);
   const accent = design.accent ? hexToRgb(design.accent) : base;
   const groups = new Map();
-  const groupFor = (kind, rgb, width, lod) => {
-    const key = `${kind}|${rgb.map(Math.round).join(',')}|${width}|${lod}`;
+  const groupFor = (kind, rgb, width) => {
+    const key = `${kind}|${rgb.map(Math.round).join(',')}|${width}`;
     let g = groups.get(key);
     if (!g) {
-      g = { kind, rgb, width, lod, items: [] };
+      g = { kind, rgb, width, items: [] };
       groups.set(key, g);
     }
     return g;
@@ -181,19 +181,18 @@ export function compileDesign(tpl, design) {
 
   for (const m of expand(design.marks, tpl.w)) {
     const rgb = markRgb(m.color, base, accent);
-    const lod = m.lod ?? 0;
     if (m.t === 'motif') {
-      groupFor('disc', rgb, 0, lod).items.push({
+      groupFor('disc', rgb, 0).items.push({
         c: resolvePoint(tpl, steps, m.at[0], m.at[1]),
         r: m.r * tpl.spacing,
       });
     } else if (m.t === 'area') {
-      groupFor('fill', rgb, 0, lod).items.push(
+      groupFor('fill', rgb, 0).items.push(
         subdivide([...m.pts, m.pts[0]]).map(([u, v]) => resolvePoint(tpl, steps, u, v)),
       );
     } else {
       const width = (m.w ?? 0.1) * tpl.spacing;
-      groupFor('stroke', rgb, width, lod).items.push(
+      groupFor('stroke', rgb, width).items.push(
         subdivide(m.pts).map(([u, v]) => resolvePoint(tpl, steps, u, v)),
       );
     }
@@ -239,10 +238,9 @@ function tracePath(ctx, world, start, pts) {
 
 // `wet` darkens the marks by the same amount as the body fill; without it a
 // soaked shirt would keep dry-looking stripes.
-export function drawGarment(ctx, world, b, groups, wet, low) {
+export function drawGarment(ctx, world, b, groups, wet) {
   const start = b.start;
   for (const g of groups) {
-    if (low && g.lod) continue;
     const colour = shadeRgb(g.rgb, 0.32 * wet);
     ctx.beginPath();
     if (g.kind === 'disc') {

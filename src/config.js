@@ -71,9 +71,17 @@ export const CONFIG = {
     reducedMotionMaxRpm: 90,
   },
 
+  // The course rates are the real thing: at `fillRate` the 180 s fill stage
+  // takes 159 s to reach its level, and at `drainRate` the 90 s drain takes
+  // 78 s to empty. MANUAL hands the valve and the pump to the user, and
+  // waiting minutes for a slider is not watching a machine, so there the two
+  // run faster: the whole drum fills in about 30 s and empties in about 15,
+  // quick enough that the slider answers and slow enough to watch it move.
   water: {
     fillRate: 0.0022,
     drainRate: 0.0045,
+    manualFillRate: 0.033,
+    manualDrainRate: 0.066,
     tiltGain: 0.04,
     tiltMax: 0.44,
     tiltTau: 0.6,
@@ -95,7 +103,6 @@ export const CONFIG = {
   // edge instead of stopping short of it.
   laundry: {
     max: 20,
-    maxLow: 12,
     spawnInterval: 0.4,
     removeFade: 0.5,
     spawnY: -0.55,
@@ -109,8 +116,8 @@ export const CONFIG = {
             marks: [
               { t: 'stripe', rows: [1.3, 2.15], u0: 0.6, u1: 5.4, w: 0.42, color: 'accent' },
               { t: 'band', pts: [[2.05, 0.06], [3, 0.58], [3.95, 0.06]], w: 0.28, color: 'accent' },
-              { t: 'seam', pts: [[0.62, -0.5], [0.62, 0.55]], mirror: true, w: 0.09, color: { shade: 0.24 }, lod: 1 },
-              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 }, lod: 1 },
+              { t: 'seam', pts: [[0.62, -0.5], [0.62, 0.55]], mirror: true, w: 0.09, color: { shade: 0.24 } },
+              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 } },
             ],
           },
           {
@@ -119,7 +126,7 @@ export const CONFIG = {
             marks: [
               { t: 'area', pts: [[-1.2, -1], [1.75, -1], [1.05, 0.95], [-1.2, 0.95]], mirror: true, color: 'accent' },
               { t: 'band', pts: [[2.05, 0.06], [3, 0.58], [3.95, 0.06]], w: 0.28, color: 'accent' },
-              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 }, lod: 1 },
+              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 } },
             ],
           },
           {
@@ -129,8 +136,8 @@ export const CONFIG = {
               { t: 'motif', at: [3, 1.65], r: 0.78, color: 'accent' },
               { t: 'motif', at: [3, 1.65], r: 0.4, color: { shade: 0.3 } },
               { t: 'band', pts: [[2.05, 0.06], [3, 0.58], [3.95, 0.06]], w: 0.28, color: { tint: 0.42 } },
-              { t: 'seam', pts: [[0.62, -0.5], [0.62, 0.55]], mirror: true, w: 0.09, color: { shade: 0.24 }, lod: 1 },
-              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 }, lod: 1 },
+              { t: 'seam', pts: [[0.62, -0.5], [0.62, 0.55]], mirror: true, w: 0.09, color: { shade: 0.24 } },
+              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 } },
             ],
           },
           {
@@ -140,8 +147,8 @@ export const CONFIG = {
               { t: 'area', pts: [[1.5, 1.28], [2.85, 1.28], [2.85, 2.35], [1.5, 2.35]], color: { shade: 0.18 } },
               { t: 'seam', pts: [[1.42, 1.22], [2.93, 1.22]], w: 0.15, color: 'accent' },
               { t: 'band', pts: [[2.05, 0.06], [3, 0.58], [3.95, 0.06]], w: 0.28, color: 'accent' },
-              { t: 'seam', pts: [[0.62, -0.5], [0.62, 0.55]], mirror: true, w: 0.09, color: { shade: 0.24 }, lod: 1 },
-              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 }, lod: 1 },
+              { t: 'seam', pts: [[0.62, -0.5], [0.62, 0.55]], mirror: true, w: 0.09, color: { shade: 0.24 } },
+              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 } },
             ],
           },
           {
@@ -149,8 +156,8 @@ export const CONFIG = {
             accent: '#f7f2e8',
             marks: [
               { t: 'band', pts: [[2.05, 0.06], [3, 0.58], [3.95, 0.06]], w: 0.3, color: 'accent' },
-              { t: 'seam', pts: [[0.62, -0.5], [0.62, 0.55]], mirror: true, w: 0.09, color: { shade: 0.24 }, lod: 1 },
-              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 }, lod: 1 },
+              { t: 'seam', pts: [[0.62, -0.5], [0.62, 0.55]], mirror: true, w: 0.09, color: { shade: 0.24 } },
+              { t: 'seam', pts: [[0.75, 2.85], [5.25, 2.85]], w: 0.08, color: { shade: 0.22 } },
             ],
           },
         ],
@@ -168,7 +175,7 @@ export const CONFIG = {
               { t: 'band', pts: [[0.05, 2.02], [0.85, 2.02]], w: 1.3, color: 'accent' },
               { t: 'band', pts: [[3.1, 1.9], [3.1, 2.12]], w: 1.25, color: 'accent' },
               { t: 'band', pts: [[1.9, 0.28], [3.3, 0.28]], w: 0.34, color: 'accent' },
-              { t: 'seam', pts: [[1.9, 0.72], [3.3, 0.72]], w: 0.09, color: { shade: 0.2 }, lod: 1 },
+              { t: 'seam', pts: [[1.9, 0.72], [3.3, 0.72]], w: 0.09, color: { shade: 0.2 } },
             ],
           },
           {
@@ -236,12 +243,12 @@ export const CONFIG = {
             accent: '#f3eeff',
             marks: [
               { t: 'stripe', rows: [0.5, 3.5], u0: -0.4, u1: 2.4, w: 0.32, color: 'accent' },
-              { t: 'seam', pts: [[0.15, -0.18], [0.15, 0.34]], w: 0.11, color: 'accent', lod: 1 },
-              { t: 'seam', pts: [[1.0, -0.18], [1.0, 0.34]], w: 0.11, color: 'accent', lod: 1 },
-              { t: 'seam', pts: [[1.85, -0.18], [1.85, 0.34]], w: 0.11, color: 'accent', lod: 1 },
-              { t: 'seam', pts: [[0.15, 3.66], [0.15, 4.18]], w: 0.11, color: 'accent', lod: 1 },
-              { t: 'seam', pts: [[1.0, 3.66], [1.0, 4.18]], w: 0.11, color: 'accent', lod: 1 },
-              { t: 'seam', pts: [[1.85, 3.66], [1.85, 4.18]], w: 0.11, color: 'accent', lod: 1 },
+              { t: 'seam', pts: [[0.15, -0.18], [0.15, 0.34]], w: 0.11, color: 'accent' },
+              { t: 'seam', pts: [[1.0, -0.18], [1.0, 0.34]], w: 0.11, color: 'accent' },
+              { t: 'seam', pts: [[1.85, -0.18], [1.85, 0.34]], w: 0.11, color: 'accent' },
+              { t: 'seam', pts: [[0.15, 3.66], [0.15, 4.18]], w: 0.11, color: 'accent' },
+              { t: 'seam', pts: [[1.0, 3.66], [1.0, 4.18]], w: 0.11, color: 'accent' },
+              { t: 'seam', pts: [[1.85, 3.66], [1.85, 4.18]], w: 0.11, color: 'accent' },
             ],
           },
         ],
@@ -256,8 +263,8 @@ export const CONFIG = {
             marks: [
               { t: 'band', pts: [[-0.4, 0.15], [4.4, 0.15]], w: 0.46, color: { shade: 0.2 } },
               { t: 'seam', pts: [[2, 0.5], [2, 1.45]], w: 0.1, color: 'accent' },
-              { t: 'seam', pts: [[0.55, 1.1], [1.5, 1.1], [1.5, 1.85]], mirror: true, w: 0.08, color: 'accent', lod: 1 },
-              { t: 'seam', pts: [[0.18, 0.45], [0.18, 4.35]], mirror: true, w: 0.09, color: 'accent', lod: 1 },
+              { t: 'seam', pts: [[0.55, 1.1], [1.5, 1.1], [1.5, 1.85]], mirror: true, w: 0.08, color: 'accent' },
+              { t: 'seam', pts: [[0.18, 0.45], [0.18, 4.35]], mirror: true, w: 0.09, color: 'accent' },
               { t: 'band', pts: [[-0.35, 3.9], [1.5, 3.9]], mirror: true, w: 0.26, color: { shade: 0.18 } },
             ],
           },
@@ -267,7 +274,7 @@ export const CONFIG = {
             marks: [
               { t: 'band', pts: [[-0.4, 0.15], [4.4, 0.15]], w: 0.44, color: 'accent' },
               { t: 'seam', pts: [[2, 0.5], [2, 1.4]], w: 0.09, color: { shade: 0.22 } },
-              { t: 'seam', pts: [[0.18, 0.45], [0.18, 4.35]], mirror: true, w: 0.08, color: { shade: 0.2 }, lod: 1 },
+              { t: 'seam', pts: [[0.18, 0.45], [0.18, 4.35]], mirror: true, w: 0.08, color: { shade: 0.2 } },
               { t: 'band', pts: [[-0.35, 3.95], [1.5, 3.95]], mirror: true, w: 0.22, color: 'accent' },
             ],
           },
@@ -329,13 +336,19 @@ export const CONFIG = {
   // drum at the top of the slider. `max` is the bubble count at that point.
   foam: {
     max: 320,
-    maxLow: 160,
     defaultLevel: 0.35,
     capacityExp: 1.3,
-    capTau: 1,
+    // How long a dose change takes to reach the foam. The head is the capacity
+    // times the volume, so this is what paces the slider: the suds swell and
+    // sag over a few seconds rather than snapping to the new dose.
+    capTau: 3,
     headRoom: 0.95,
     radiusGain: 1.2,
     countExp: 0.7,
+    // Bubble areas the drawn head may stack into its band. Normal use runs at
+    // one to one and a half layers, so this only bites where the band is a
+    // sliver.
+    packing: 3,
     frLow: 0.7,
     frHigh: 1.3,
     agitationMin: 0.35,

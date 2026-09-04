@@ -118,7 +118,7 @@ export class DrumBackLayer {
   // Draws the perforated back plate rotated to theta. Fast rotation is
   // rendered as a running average of sub-frame poses, then cross-faded to a
   // pre-blurred image so hole rings never strobe.
-  draw(ctx, theta, dTheta, low) {
+  draw(ctx, theta, dTheta) {
     const size = 2 * this.pad;
     const o = -this.pad;
     const ratio = Math.abs(dTheta) / this.minSpacing;
@@ -129,17 +129,17 @@ export class DrumBackLayer {
       ctx.drawImage(img, o, o, size, size);
       ctx.restore();
     };
-    const single = low ? 0.4 : 0.2;
+    const single = 0.2;
     if (ratio < single) {
       blit(theta, 1, this.sharp);
       return;
     }
-    const f = low ? Math.min(1, (ratio - 0.4) / 0.4) : Math.min(1, (ratio - 0.2) / 0.55);
+    const f = Math.min(1, (ratio - 0.2) / 0.55);
     if (f >= 1) {
       blit(0, 1, this.blur);
       return;
     }
-    const n = low ? 1 : Math.min(6, Math.max(2, Math.ceil(ratio * 8)));
+    const n = Math.min(6, Math.max(2, Math.ceil(ratio * 8)));
     for (let k = 0; k < n; k++) {
       blit(theta - dTheta * (k / n), 1 / (k + 1), this.sharp);
     }

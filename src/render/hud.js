@@ -12,6 +12,9 @@ const SEG = {
   8: [1, 1, 1, 1, 1, 1, 1],
   9: [1, 1, 1, 1, 0, 1, 1],
   '-': [0, 0, 0, 0, 0, 0, 1],
+  // A blank position, so leading zeros read as unlit digits rather than as
+  // part of the number.
+  ' ': [0, 0, 0, 0, 0, 0, 0],
 };
 
 // Every element inside the console is sized from its height, so the height has
@@ -112,11 +115,20 @@ export class Hud {
     }
 
     if (showRpm) {
-      g.fillStyle = pal.led;
+      // Seven segment like the clock beside it. Only the unit and the stage
+      // name are set type, the way a real console silkscreens them.
+      const rH = h * 0.34;
+      const rW = rH * 0.52;
+      const rGap = rH * 0.14;
+      const digits = String(rpm).padStart(3, ' ');
+      let rx = w - pad - (3 * rW + 2 * rGap);
+      const ry = h * 0.42 - rH / 2;
+      for (let i = 0; i < 3; i++) {
+        drawDigit(g, digits[i], rx, ry, rW, rH, pal);
+        rx += rW + rGap;
+      }
       g.textAlign = 'right';
       g.textBaseline = 'alphabetic';
-      g.font = `600 ${Math.round(h * 0.34)}px ${UI_FONT}`;
-      g.fillText(String(rpm), w - pad, h * 0.52);
       g.font = `500 ${Math.round(h * 0.17)}px ${UI_FONT}`;
       g.fillStyle = 'rgba(95,242,200,0.6)';
       g.fillText('RPM', w - pad, h * 0.76);
