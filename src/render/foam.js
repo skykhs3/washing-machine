@@ -218,7 +218,8 @@ export class Foam {
       } else {
         // In the head: settle into the layer and drift with the surface flow.
         const rest = ys - b.slot * head - b.r * 0.5;
-        const wobble = this.still ? 0 : Math.sin(time * 3 + b.phase) * c.wobble;
+        // Foam on still water sits still too; it only jiggles with the waves.
+        const wobble = this.still ? 0 : Math.sin(time * 3 + b.phase) * c.wobble * (0.15 + 0.85 * water.ripple);
         b.vy = (rest - by) * c.settleRate;
         b.vx = -water.swirl * by + wobble;
         b.y = by + b.vy * dt;

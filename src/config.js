@@ -61,6 +61,16 @@ export const CONFIG = {
     linearDrag: 2.0,
     quadDrag: 3.0,
     manualLevel: 0.35,
+    // Surface waves. The drive is the largest of the swirl, the agitation of
+    // the load under water, and the fill or drain flow, each scaled to its
+    // reference; a splash adds strength × splashRipple on top.
+    swirlRippleRef: 2.5,
+    agitationRippleRef: 1.5,
+    fillRipple: 0.45,
+    drainRipple: 0.25,
+    splashRipple: 0.08,
+    rippleRise: 0.3,
+    rippleDecay: 1.5,
   },
 
   // Laundry. `mask` is the cell grid the soft body is built from, `scale`
