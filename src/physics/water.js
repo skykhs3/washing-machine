@@ -233,4 +233,13 @@ export class Water {
     const swirlT = c.swirlRatio * omega * Math.min(1, this.level / 0.15);
     this.swirl += (swirlT - this.swirl) * (1 - Math.exp(-dt / c.swirlTau));
   }
+
+  // How long the inlet or the pump needs to take the drum from one level to
+  // another at the pace the program runs them. MANUAL opens both wide for the
+  // slider, but that is the user's hand on the valve rather than the course, so
+  // the course rates are the ones a stage's own length is measured against.
+  timeToLevel(from, to) {
+    const c = this.cfg;
+    return Math.abs(to - from) / (to > from ? c.fillRate : c.drainRate);
+  }
 }

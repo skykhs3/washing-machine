@@ -43,7 +43,7 @@ const world = new World(CONFIG.physics, CONFIG.laundry);
 const drum = new Drum(CONFIG.physics);
 const motor = new Motor(CONFIG.motor);
 const water = new Water(CONFIG.water, CONFIG.physics.gravity);
-const cycle = new Cycle(CONFIG.cycle);
+const cycle = new Cycle(CONFIG.cycle, (from, to) => water.timeToLevel(from, to));
 const foam = new Foam(CONFIG.foam);
 const renderer = new Renderer(vp, CONFIG);
 const audio = new AudioEngine();
@@ -432,7 +432,7 @@ function simStep(dt) {
     motor.setTargetRpm(0, PAUSE_DECEL);
     water.target = water.level;
   } else if (state.mode === 'auto') {
-    cycle.update(dt);
+    cycle.update(dt, water.level);
     motor.setTargetRpm(cycle.targetRpm(), cycle.accelFor(motor.rpm, CONFIG.motor));
     water.target = cycle.targetLevel();
   } else {

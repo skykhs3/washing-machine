@@ -105,15 +105,20 @@ export const CONFIG = {
     reducedMotionMaxRpm: 90,
   },
 
-  // The course rates are the real thing: at `fillRate` the 180 s fill stage
-  // takes 159 s to reach its level, and at `drainRate` the 90 s drain takes
-  // 78 s to empty. MANUAL hands the valve and the pump to the user, and
-  // waiting minutes for a slider is not watching a machine, so there the two
-  // run faster: the whole drum fills in about 30 s and empties in about 15,
-  // quick enough that the slider answers and slow enough to watch it move.
+  // The course rates are set by the tightest stage that has to use them: the
+  // rinse fill has 150 s to move 30 % and the drain has 90 s to move 35 %, and
+  // both are given a few seconds in hand. A machine standing still with the
+  // valve already shut is nothing to watch, so the water is paced to take
+  // nearly the whole of its stage rather than finishing early and leaving the
+  // drum sitting there. Cycle leans on those few seconds: a stage has to be at
+  // least as long as the transfer it asks for. MANUAL hands the valve and the
+  // pump to the user, and waiting minutes for a slider is not watching a
+  // machine, so there the two run faster: the whole drum fills in about 30 s
+  // and empties in about 15, quick enough that the slider answers and slow
+  // enough to watch it move.
   water: {
-    fillRate: 0.0022,
-    drainRate: 0.0045,
+    fillRate: 0.00205,
+    drainRate: 0.00407,
     manualFillRate: 0.033,
     manualDrainRate: 0.066,
     tiltGain: 0.04,
@@ -532,17 +537,17 @@ export const CONFIG = {
   // with the air the tumbling load actually entrains.
   cycle: {
     stages: [
-      { id: 'fill', label: 'fill', phase: 0, duration: 180, rpm: 0, level: 0.35, surfactant: 0.2 },
+      { id: 'fill', label: 'fill', phase: 0, duration: 175, rpm: 0, level: 0.35, surfactant: 0.2 },
       { id: 'wash', label: 'wash', phase: 0, duration: 1080, rpm: 45, pattern: TUMBLE, level: 0.35, surfactant: 1 },
       { id: 'drain', label: 'drain', phase: 0, duration: 90, rpm: 0, level: 0, surfactant: 0.2 },
       { id: 'spin1', label: 'spin', phase: 0, duration: 120, rpm: 120, profile: SHORT_SPIN, level: 0, surfactant: 0, spin: true },
       { id: 'rinseFill1', label: 'fill', phase: 1, duration: 150, rpm: 0, level: 0.3, surfactant: 0.08 },
       { id: 'rinse1', label: 'rinse', phase: 1, duration: 300, rpm: 45, pattern: TUMBLE, level: 0.3, surfactant: 0.3 },
-      { id: 'drain2', label: 'drain', phase: 1, duration: 90, rpm: 0, level: 0, surfactant: 0.08 },
+      { id: 'drain2', label: 'drain', phase: 1, duration: 78, rpm: 0, level: 0, surfactant: 0.08 },
       { id: 'spin2', label: 'spin', phase: 1, duration: 120, rpm: 120, profile: SHORT_SPIN, level: 0, surfactant: 0, spin: true },
       { id: 'rinseFill2', label: 'fill', phase: 2, duration: 150, rpm: 0, level: 0.3, surfactant: 0.04 },
       { id: 'rinse2', label: 'rinse', phase: 2, duration: 300, rpm: 45, pattern: TUMBLE, level: 0.3, surfactant: 0.18 },
-      { id: 'drain3', label: 'drain', phase: 2, duration: 90, rpm: 0, level: 0, surfactant: 0.02 },
+      { id: 'drain3', label: 'drain', phase: 2, duration: 78, rpm: 0, level: 0, surfactant: 0.02 },
       { id: 'spin', label: 'spin', phase: 3, duration: 600, rpm: 200, profile: FINAL_SPIN, level: 0, surfactant: 0, spin: true },
       { id: 'done', label: 'done', phase: 4, duration: 120, rpm: 0, level: 0, surfactant: 0 },
     ],

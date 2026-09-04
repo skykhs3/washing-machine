@@ -1,9 +1,22 @@
 export class Cycle {
-  constructor(cfg) {
+  constructor(cfg, timeToLevel) {
     this.stages = cfg.stages;
     this.idx = 0;
     this.t = 0;
     this.phaseCount = this.stages.reduce((m, s) => Math.max(m, s.phase + 1), 0);
+    this.timeToLevel = timeToLevel;
+    // Nominal transfer time for each stage: how long the inlet or the pump
+    // needs to take the drum from what the stage before leaves behind to this
+    // stage's level. Zero for every stage that holds its level, which is why
+    // nothing here needs a flag for "this one moves water". Capped at the
+    // stage's own length, so a course tuned with a stage shorter than its own
+    // transfer cannot let the program run ahead of the plumbing.
+    this.xfer = this.stages.map((s, i) => Math.min(s.duration, timeToLevel(this.levelBefore(i), s.level)));
+  }
+
+  levelBefore(i) {
+    const n = this.stages.length;
+    return this.stages[(i - 1 + n) % n].level;
   }
 
   get phase() {
@@ -33,8 +46,22 @@ export class Cycle {
     return Math.min(1, this.t / this.stage.duration);
   }
 
-  update(dt) {
+  update(dt, level) {
     this.t += dt;
+    // A fill is over when the water is there, not when the clock says so, so a
+    // stage that moves water reads its elapsed time off what is left to move:
+    // the nominal transfer less the time the water still needs. A drum filled
+    // by hand in MANUAL reaches the fill stage already at level and starts at
+    // the far end of the transfer, with only the stage's own few seconds left
+    // to wait out, the same few a fill that ran its course ends on. The clock
+    // is never wound back, so this can only shorten a wait, and it cannot
+    // outrun the water: what is left is always those seconds plus the time the
+    // water needs, whichever way it has to move. A stage running at its own
+    // pace sits exactly on this, so a course nobody has touched keeps its own
+    // timings. A level that is not a number leaves the comparison false and the
+    // clock standing.
+    const at = this.xfer[this.idx] - this.timeToLevel(level, this.stage.level);
+    if (at > this.t) this.t = at;
     while (this.t >= this.stage.duration) {
       this.t -= this.stage.duration;
       this.idx = (this.idx + 1) % this.stages.length;
@@ -77,8 +104,7 @@ export class Cycle {
   // The level the stage before this one leaves behind, which is what the drum
   // holds as this stage starts.
   entryLevel() {
-    const n = this.stages.length;
-    return this.stages[(this.idx - 1 + n) % n].level;
+    return this.levelBefore(this.idx);
   }
 
   // Detergent concentration in the drum, not a foam amount.
