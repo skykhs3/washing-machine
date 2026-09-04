@@ -76,9 +76,9 @@ export class Renderer {
     vp.pixelTransform(ctx);
     this.glass.draw(ctx, vp);
 
-    // The latch keeps working while the simulation is paused, so it runs off
-    // the real frame time rather than the simulation's.
-    this.handle.update(state.uiDt);
+    // The latch, the blur and the simulation run off one clock now that a
+    // pause stops the drum instead of the frame.
+    this.handle.update(frameDt);
     vp.drumTransform(ctx);
     this.handle.draw(ctx);
 

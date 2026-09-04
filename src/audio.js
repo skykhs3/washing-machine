@@ -351,7 +351,7 @@ export class AudioEngine {
   }
 
   // s: { rpm, level, target, waterActive, swirl, agitation, load, wetness,
-  //      lifters, paused }
+  //      lifters }
   update(dt, s) {
     if (!this.ctx || !this.master) return;
     const c = this.ctx;
@@ -364,25 +364,6 @@ export class AudioEngine {
       this.wasFilling = filling;
       this.wasDraining = draining;
     }
-
-    if (s.paused) {
-      // The AM depths feed the bed gain AudioParams directly, and a param's
-      // value is its own plus everything connected to it, so zeroing the beds
-      // would leave the LFOs still swinging them. Muting the bus covers every
-      // bed at once, including any added later.
-      set(this.bus.gain, 0, 0.02);
-      set(this.rumbleAm.depth.gain, 0, 0.02);
-      set(this.whineAm.depth.gain, 0, 0.02);
-      // A stage can still be skipped while paused, so take on whatever the
-      // water did; otherwise resuming would fire a valve or pump one-shot for
-      // a transition that already happened.
-      this.wasFilling = filling;
-      this.wasDraining = draining;
-      // Bed levels are left where they are rather than pulled to zero, so
-      // resuming is immediate instead of fading back in.
-      return;
-    }
-    set(this.bus.gain, 1, 0.05);
 
     const r = Math.abs(s.rpm);
     const ar = AudioEngine.audioRpm(s.rpm);

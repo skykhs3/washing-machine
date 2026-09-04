@@ -53,6 +53,9 @@ if (reduceMotion) {
   foam.still = true;
 }
 
+// Coasting down is motion to watch, so reduced motion gets the stop without it.
+const PAUSE_DECEL = reduceMotion ? CONFIG.motor.reducedMotionPauseDecel : CONFIG.motor.pauseDecel;
+
 const state = {
   mode: saved?.mode === 'manual' ? 'manual' : 'auto',
   paused: false,
@@ -107,11 +110,16 @@ const app = {
   maxRpm() {
     return motor.maxRpm;
   },
+  // What the machine is set to run at, which is not the motor's target while a
+  // pause is asking it for zero. The panel, the mode switch and the arrow keys
+  // all want the setting to come back to, not the brake.
   currentTargetRpm() {
-    return motor.targetRpm;
+    const lim = motor.maxRpm;
+    const setting = state.mode === 'manual' ? state.manual.rpm * state.manual.dir : cycle.targetRpm();
+    return Math.max(-lim, Math.min(lim, setting));
   },
   currentDirection() {
-    const w = Math.abs(motor.omega) > 0.05 ? motor.omega : motor.target;
+    const w = Math.abs(motor.omega) > 0.05 ? motor.omega : this.currentTargetRpm();
     return w < 0 ? -1 : 1;
   },
   currentWaterLevel() {
@@ -166,7 +174,7 @@ const app = {
   setMode(mode) {
     if (state.mode === mode) return;
     if (mode === 'manual') {
-      state.manual.rpm = clamp(Math.round(Math.abs(motor.targetRpm)), 0, motor.maxRpm);
+      state.manual.rpm = clamp(Math.round(Math.abs(this.currentTargetRpm())), 0, motor.maxRpm);
       state.manual.dir = this.currentDirection();
       state.manual.waterLevel = water.level;
     }
@@ -176,19 +184,24 @@ const app = {
   },
   togglePause() {
     state.paused = !state.paused;
-    if (!state.paused) {
-      last = performance.now();
-      acc = 0;
-    }
+    refreshUi();
+  },
+  // Reaching for the motor or the water is asking the machine to run, so it
+  // takes the pause off rather than setting a value nothing acts on.
+  resume() {
+    if (!state.paused) return;
+    state.paused = false;
     refreshUi();
   },
   setManualRpm(rpm) {
+    this.resume();
     if (state.mode !== 'manual') this.setMode('manual');
     state.manual.rpm = clamp(Math.round(rpm), 0, motor.maxRpm);
     save();
     panel.syncLive(true);
   },
   setDirection(dir) {
+    this.resume();
     if (state.mode !== 'manual') this.setMode('manual');
     state.manual.dir = dir < 0 ? -1 : 1;
     save();
@@ -198,6 +211,7 @@ const app = {
     this.setDirection(state.mode === 'manual' ? -state.manual.dir : -this.currentDirection());
   },
   setWaterLevel(v) {
+    this.resume();
     if (state.mode !== 'manual') this.setMode('manual');
     state.manual.waterLevel = clamp(v, 0, 1);
     save();
@@ -408,7 +422,16 @@ function tickSpawn(dt) {
 }
 
 function simStep(dt) {
-  if (state.mode === 'auto') {
+  if (state.paused) {
+    // Pause stops the machine, it does not freeze the picture: the program is
+    // held where it stands while the drum is asked for zero and coasts down.
+    // Nothing here remembers a speed to return to. The target is derived from
+    // cycle.t, so holding that still is what makes resume pick up the stage and
+    // the speed it left off at. The inlet and the pump shut with it, so the tub
+    // keeps whatever it is holding instead of finishing a fill nobody watches.
+    motor.setTargetRpm(0, PAUSE_DECEL);
+    water.target = water.level;
+  } else if (state.mode === 'auto') {
     cycle.update(dt);
     motor.setTargetRpm(cycle.targetRpm(), cycle.accelFor(motor.rpm, CONFIG.motor));
     water.target = cycle.targetLevel();
@@ -477,16 +500,14 @@ function frame(now) {
   last = now;
   const t0 = performance.now();
 
-  if (!state.paused) {
-    acc += frameDt;
-    let steps = 0;
-    while (acc >= DT && steps < CONFIG.physics.maxStepsPerFrame) {
-      simStep(DT);
-      acc -= DT;
-      steps++;
-    }
-    if (steps === CONFIG.physics.maxStepsPerFrame) acc = 0;
+  acc += frameDt;
+  let steps = 0;
+  while (acc >= DT && steps < CONFIG.physics.maxStepsPerFrame) {
+    simStep(DT);
+    acc -= DT;
+    steps++;
   }
+  if (steps === CONFIG.physics.maxStepsPerFrame) acc = 0;
   const t1 = performance.now();
 
   for (const e of world.events) {
@@ -504,12 +525,10 @@ function frame(now) {
     load: world.liveCount,
     wetness: world.wetness,
     lifters: CONFIG.physics.lifter.count,
-    paused: state.paused,
   });
 
-  const dtVisual = state.paused ? 0 : frameDt;
   const info = hudInfo();
-  foam.update(dtVisual, {
+  foam.update(frameDt, {
     water,
     drum,
     agitation: world.agitation,
@@ -523,8 +542,7 @@ function frame(now) {
     water,
     foam,
     time: world.time,
-    frameDt: dtVisual,
-    uiDt: frameDt,
+    frameDt,
     hud: info,
     debug: DEBUG,
     stats,
@@ -588,11 +606,11 @@ window.addEventListener('keydown', (e) => {
       break;
     case 'ArrowUp':
       e.preventDefault();
-      app.setManualRpm((state.mode === 'manual' ? state.manual.rpm : Math.abs(motor.targetRpm)) + 5);
+      app.setManualRpm(Math.abs(app.currentTargetRpm()) + 5);
       break;
     case 'ArrowDown':
       e.preventDefault();
-      app.setManualRpm((state.mode === 'manual' ? state.manual.rpm : Math.abs(motor.targetRpm)) - 5);
+      app.setManualRpm(Math.abs(app.currentTargetRpm()) - 5);
       break;
     case 'a':
     case 'A':

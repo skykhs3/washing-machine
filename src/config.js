@@ -95,6 +95,12 @@ export const CONFIG = {
     accelSpinUp: 1.2,
     accelSpinDown: 1.5,
     accelManual: 6,
+    // Coming to a stop is the brake, not a programmed speed change, so it is
+    // firmer than accelSpinDown: a pause from a full spin settles in a few
+    // seconds instead of drifting down for a quarter of a minute. Reduced
+    // motion gets the same stop without the coast to watch.
+    pauseDecel: 6,
+    reducedMotionPauseDecel: 40,
     maxRpm: 240,
     reducedMotionMaxRpm: 90,
   },

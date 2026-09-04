@@ -31,7 +31,7 @@ Soft-body laundry tumbles, soaks, and gets flung against the drum wall during sp
 | RPM slider, Reverse | Take over the motor; touching either switches to MANUAL. The mark on the track moves with the water: past it the water is flung into a ring against the wall, from 60 RPM with a brim-full drum to about 100 with a trace of water |
 | Foam slider | Detergent dose. Sets how much foam the wash and MANUAL make, from none to a drum full of suds. Works in both modes. The mark on the track is the dose that gives a concentration of one |
 | Water slider | Sets the level in the drum, from empty to brim full. Touching it switches to MANUAL, where the valve and the pump run wide open and the whole drum fills in about 30 seconds; in AUTO it reads out the level the program is at, filling and draining at the course's own pace. The mark on the track is the level the program itself fills to |
-| Pause, Prev / Skip | Freeze everything, or step back and forward through the stages in AUTO |
+| Pause, Prev / Skip | Cut the motor and the valves, so the drum coasts to a stop and the program waits where it stands. Or step back and forward through the stages in AUTO |
 | Speaker button, volume slider | Sound starts off. Tap the speaker to turn it on, then set the level in the panel |
 | Reset all | Clears the saved state and reloads, back to a first visit |
 | × / Controls | Close the panel, or bring it back with the Controls button |
@@ -134,7 +134,7 @@ MIT
 | RPM 슬라이더, 역회전 | 모터를 직접 돌립니다. 둘 중 하나를 만지면 수동으로 바뀝니다. 트랙의 눈금은 물 양에 따라 움직이며, 그 위에서는 물이 벽에 붙은 고리가 됩니다. 가득이면 60 RPM, 조금이면 100 RPM 근처입니다 |
 | 거품 슬라이더 | 세제량입니다. 세탁 단계와 수동 모드의 거품 양을 없음부터 드럼 가득까지 정합니다. 두 모드 모두에서 동작합니다. 트랙의 눈금은 농도가 1이 되는 세제량입니다 |
 | 물 슬라이더 | 드럼의 물 높이를 비움부터 가득까지 정합니다. 만지면 수동으로 바뀌며, 수동에서는 밸브와 펌프를 활짝 열어 드럼 전체가 30초쯤에 찹니다. 자동에서는 코스가 만드는 수위를 코스의 속도로 보여 줍니다. 트랙의 눈금은 코스가 채우는 수위입니다 |
-| 일시정지, 이전 단계 / 다음 단계 | 전부 멈추거나, 자동에서 단계를 앞뒤로 옮깁니다 |
+| 일시정지, 이전 단계 / 다음 단계 | 모터와 밸브를 끊습니다. 드럼이 관성으로 멈추고 코스는 멈춘 자리에서 기다립니다. 또는 자동에서 단계를 앞뒤로 옮깁니다 |
 | 스피커 버튼, 볼륨 슬라이더 | 소리는 꺼진 채로 시작합니다. 스피커를 눌러 켜고, 크기는 패널에서 맞춥니다 |
 | 전체 초기화 | 저장된 상태를 지우고 다시 불러와 첫 방문으로 되돌립니다 |
 | × / 조작 | 패널을 닫거나, 조작 버튼으로 다시 엽니다 |
