@@ -315,28 +315,59 @@ export class Foam {
     }
   }
 
+  // Places a bubble in the upper part of the water it is entrained into. The
+  // water can be a pool at the bottom or a ring thinner than one bubble, so
+  // both the size and the depth come off the film the bubble actually sits in
+  // rather than off the deepest water in the drum.
   spawn(water, surfactant) {
     const c = this.cfg;
-    const r = (c.minRadius + Math.random() * (c.maxRadius - c.minRadius)) * this.rScale;
+    let r = (c.minRadius + Math.random() * (c.maxRadius - c.minRadius)) * this.rScale;
+    const fit = (span) => {
+      r = Math.max(c.minRadius * 0.5, Math.min(r, 0.45 * span));
+      return r + Math.random() * Math.max(0, span * 0.5 - r);
+    };
     const site = this.sites.length ? this.sites[Math.floor(Math.random() * this.sites.length)] : null;
     let x;
     let y;
     if (site) {
-      x = site.x + (Math.random() - 0.5) * 0.25;
-      y = site.y + Math.random() * 0.35 * site.k;
-    } else {
-      // Somewhere in the upper half of the water, measured down from the
-      // surface rather than from a level line the surface may not be on.
-      const depth = Math.random() * Math.max(0.05, water.waterDepth * 0.5);
+      // The splash drags its packet of air under the surface. Under is along
+      // the local vertical, which on a curved surface leans out from the
+      // equipotential centre instead of pointing straight down, so a splash at
+      // the top of a spinning drum no longer seeds bubbles in the air core.
+      const along = (Math.random() - 0.5) * 0.25;
+      const under = Math.random() * 0.35 * site.k;
       if (water.flat) {
-        x = (Math.random() * 2 - 1) * 0.8;
-        y = water.levelY + depth;
+        x = site.x - along;
+        y = site.y + under;
       } else {
-        const rho = water.rhoS + depth;
-        const th = (Math.random() * 2 - 1) * Math.PI;
-        x = rho * Math.sin(th);
-        y = water.yc + rho * Math.cos(th);
+        const dyc = site.y - water.yc;
+        const rho = Math.sqrt(site.x * site.x + dyc * dyc) || 1e-6;
+        const ux = site.x / rho;
+        const uy = dyc / rho;
+        x = site.x - uy * along + ux * under;
+        y = site.y + ux * along + uy * under;
       }
+    } else if (water.flat) {
+      // Across the wetted chord, so a shallow puddle does not get bubbles out
+      // at the sides where there is no water and the drum has to push them
+      // back through the wall.
+      const half = Math.sqrt(Math.max(0, 1 - water.levelY * water.levelY));
+      x = (Math.random() * 2 - 1) * Math.min(0.8, half * 0.9);
+      // The drum floor, not the bottom of the drum: at the edges the water is
+      // a good deal shallower than it is under the middle.
+      const floorY = Math.sqrt(Math.max(0, 1 - x * x));
+      y = water.levelY + fit(Math.max(0, floorY - water.levelY));
+    } else {
+      // Along its own ray out from the equipotential centre. Taking the depth
+      // from the deepest water instead would put the bubble past the wall
+      // wherever the film is thinner, and the pull back inside the drum would
+      // then carry it through the surface and into the air core.
+      const th = (Math.random() * 2 - 1) * water.surfaceSpan;
+      const b = -water.yc * Math.cos(th);
+      const wall = b + Math.sqrt(Math.max(0, b * b + 1 - water.yc * water.yc));
+      const rho = water.rhoS + fit(Math.max(0, wall - water.rhoS));
+      x = rho * Math.sin(th);
+      y = water.yc + rho * Math.cos(th);
     }
     // Same radial pull-in as the update loop, for the same reason.
     const keep = 1 - r - 0.02;
@@ -345,6 +376,20 @@ export class Foam {
       const k = keep / rr;
       x *= k;
       y *= k;
+    }
+    // A bubble is air dragged under the surface, so it starts under it whether
+    // or not the site it came from was, and whether or not the pull-in above
+    // just lifted it out. This runs last because being born in the water
+    // matters more than the edge of a bubble reaching past the wall, which the
+    // drum clips anyway.
+    if (water.depthAt(x, y) < r) {
+      if (water.flat) {
+        y = water.levelY + r;
+      } else {
+        const k = water.depthScale(x, y, r);
+        x *= k;
+        y = water.yc + (y - water.yc) * k;
+      }
     }
     return {
       x,

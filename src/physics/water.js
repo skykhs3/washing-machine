@@ -92,6 +92,15 @@ export class Water {
     return Math.max(0, this.rhoS - Math.max(0, -this.yc - 1));
   }
 
+  // Half the angle, about the equipotential centre, that the surface subtends
+  // inside the drum. Rays outside it miss the water altogether, which matters
+  // once the centre sits outside the drum and only a narrow cone reaches in.
+  get surfaceSpan() {
+    if (this.flat || this.ringed) return Math.PI;
+    const c = (1 - this.rhoS * this.rhoS - this.yc * this.yc) / (2 * this.rhoS * this.yc);
+    return c >= 1 ? 0 : c <= -1 ? Math.PI : Math.acos(c);
+  }
+
   // How far the surface runs across the drum. A head is a band along it, so
   // this is what limits how much foam the head can hold.
   get surfaceLength() {
@@ -99,9 +108,7 @@ export class Water {
       const h = this.levelY;
       return 2 * Math.sqrt(Math.max(0, 1 - h * h));
     }
-    if (this.ringed) return 2 * Math.PI * this.rhoS;
-    const c = (1 - this.rhoS * this.rhoS - this.yc * this.yc) / (2 * this.rhoS * this.yc);
-    return 2 * this.rhoS * Math.acos(clamp(c, -1, 1));
+    return 2 * this.rhoS * this.surfaceSpan;
   }
 
   // How deep the water runs the other way, from the surface out to the

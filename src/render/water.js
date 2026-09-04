@@ -28,17 +28,6 @@ export class WaterLayer {
     return Math.min(amp, 0.3 * water.waterDepth);
   }
 
-  // Half the angle, about the equipotential centre, that the surface subtends
-  // inside the drum. Pi once the water has closed into a ring and the arc no
-  // longer reaches the wall at all.
-  wallSpan(water) {
-    const { yc, rhoS } = water;
-    const c = (1 - rhoS * rhoS - yc * yc) / (2 * rhoS * yc);
-    if (c >= 1) return 0;
-    if (c <= -1) return Math.PI;
-    return Math.acos(c);
-  }
-
   // Lays the surface into the current path: a level line while the drum is
   // slow, an arc about the equipotential centre once it is not.
   trace(ctx, water, time) {
@@ -57,7 +46,7 @@ export class WaterLayer {
     }
     const { yc, rhoS, ringed } = water;
     const n = ringed ? RING_SEGMENTS : SEGMENTS;
-    const span = ringed ? Math.PI : this.wallSpan(water);
+    const span = ringed ? Math.PI : water.surfaceSpan;
     // The spline runs through the midpoints between samples, which sit a
     // sagitta inside the true circle. On a thin ring that bias is a good
     // fraction of the film, so the radius is pushed back out by it.
@@ -119,7 +108,7 @@ export class WaterLayer {
     // round the far side of the drum. Sweeping towards increasing angle from
     // the right end always passes through the bottom, which is the side the
     // water is on: the equipotential centre sits above the drum centre.
-    const span = this.wallSpan(water);
+    const span = water.surfaceSpan;
     const ex = water.rhoS * Math.sin(span);
     const ey = water.yc + water.rhoS * Math.cos(span);
     ctx.arc(0, 0, OUTER, Math.atan2(ey, ex), Math.atan2(ey, -ex));
