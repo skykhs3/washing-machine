@@ -79,6 +79,10 @@
           <span class="slider-label"><span data-i18n="rpm">RPM</span> <output id="rpmOut" for="rpm">0</output></span>
           <input id="rpm" type="range" min="0" max="240" step="5" value="0" aria-valuetext="0 RPM">
         </label>
+        <label class="slider">
+          <span class="slider-label"><span data-i18n="foam">Foam</span> <output id="foamOut" for="foam">35%</output></span>
+          <input id="foam" type="range" min="0" max="100" step="5" value="35" aria-valuetext="35%" data-i18n-title="foamHint">
+        </label>
         <div class="row">
           <button type="button" id="dir" aria-pressed="false" data-i18n="reverse">Reverse</button>
           <button type="button" id="water" aria-pressed="false" data-i18n="water">Water</button>

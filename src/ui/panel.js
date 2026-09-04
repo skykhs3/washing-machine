@@ -7,6 +7,8 @@ export function initPanel(root, app) {
     pause: root.querySelector('#pause'),
     rpm: root.querySelector('#rpm'),
     rpmOut: root.querySelector('#rpmOut'),
+    foam: root.querySelector('#foam'),
+    foamOut: root.querySelector('#foamOut'),
     dir: root.querySelector('#dir'),
     water: root.querySelector('#water'),
     skip: root.querySelector('#skip'),
@@ -23,6 +25,7 @@ export function initPanel(root, app) {
   els.pause.addEventListener('click', () => app.togglePause());
   els.quickPause.addEventListener('click', () => app.togglePause());
   els.rpm.addEventListener('input', () => app.setManualRpm(Number(els.rpm.value)));
+  els.foam.addEventListener('input', () => app.setFoam(Number(els.foam.value) / 100));
   els.dir.addEventListener('click', () => app.toggleDirection());
   els.water.addEventListener('click', () => app.toggleWater());
   els.skip.addEventListener('click', () => app.skipStage());
@@ -74,6 +77,10 @@ export function initPanel(root, app) {
       const vol = Math.round(s.sound.volume * 100);
       els.volume.value = String(vol);
       els.volume.setAttribute('aria-valuetext', `${vol}%`);
+      const foam = Math.round(s.foam * 100);
+      els.foam.value = String(foam);
+      els.foam.setAttribute('aria-valuetext', `${foam}%`);
+      els.foamOut.textContent = `${foam}%`;
       els.rpm.max = String(app.maxRpm());
       this.syncRpm(true);
     },
