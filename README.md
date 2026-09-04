@@ -11,7 +11,7 @@ Soft-body laundry tumbles, soaks, and gets flung against the drum wall during sp
 
 ## Features
 
-- Full standard cotton course (about 57 minutes) that runs on its own: fill → wash → drain → short spin → two rinses with the same drain and short spin → 10 minute final spin → done, then repeats. The LED shows the time left in the course
+- Full standard cotton course (about 55 minutes) that runs on its own: fill → wash → drain → short spin → two rinses with the same drain and short spin → 10 minute final spin → done, then repeats. The LED shows the time left in the course
 - Add T-shirts, socks, towels, and pants, up to 20 items. Each type comes in designs a wardrobe would actually hold, in the colours it would hold them in, drawn as real garment parts rather than a repeating print: collars, armhole and side seams, chest stripes and breton stripes, contrast sleeves, sleeve hems, waistbands, cuffs and drawstrings, topstitching and slant pockets, woven and dobby towel borders, ribbed sock cuffs, toe caps and heel patches. On a black tee or a charcoal towel the seams are picked out lighter than the cloth rather than darker, the way they read in life. Socks go in and come out a pair at a time, and a pair counts as one item
 - Water level, a surface that curves with the spin until the water is a ring against the wall, foam, and buoyancy for anything under the surface. A foam slider sets the detergent dose, from none to a drum full of suds, and the rinses only ever carry a fraction of the wash foam
 - Laundry at the bottom of the pile is pressed flat by the weight above it, and a load pinned to the wall in a spin is pressed thin by the centrifugal field
@@ -43,16 +43,16 @@ Timings follow a typical standard cotton course on a household front loader.
 
 | Stage | Length | Drum | Water |
 |---|---|---|---|
-| Fill | 3 min | stopped | fills to 35 % |
+| Fill | 2.7 min | stopped | fills to 35 % |
 | Wash | 18 min | 45 RPM, 12 s each way with 3 s pauses | 35 % |
-| Drain | 1.5 min | stopped | drains |
+| Drain | 1.4 min | stopped | drains |
 | Spin | 2 min | 60 RPM to distribute, 120 RPM, coast down | empty |
-| Fill / Rinse / Drain / Spin | 2.5 / 5 / 1.3 / 2 min | as above | 30 % |
-| Fill / Rinse / Drain | 2.5 / 5 / 1.3 min | as above | 30 % |
+| Fill / Rinse / Drain / Spin | 2.4 / 5 / 1.2 / 2 min | as above | 30 % |
+| Fill / Rinse / Drain | 2.4 / 5 / 1.2 min | as above | 30 % |
 | Final spin | 10 min | 60 → 120 → 200 RPM, 1 min coast down | empty |
 | Done | 2 min | stopped | empty |
 
-Total: about 56 minutes, then the course starts again. Fill and drain take their time from the water rather than from the clock: each is paced to use nearly the whole of its stage, and a drum that is already at the level it is being filled to only waits out the few seconds left on the end of that stage instead of a fill it does not need. The RPM shown is the simulated drum speed. Real spin speeds (800 ~ 1200 RPM) cannot be shown meaningfully at 60 fps, so the final spin runs at 200 RPM. Anything above ~60 RPM already pins the laundry to the wall because the drum radius and gravity are scaled like a real 50 cm drum.
+Total: about 55 minutes, then the course starts again. A stage that only moves water is as long as that transfer takes plus a few seconds, rather than a round number with a tail of the machine standing still on the end of it. Fill and drain take their time from the water rather than from the clock, so a drum already at the level it is being filled to only waits out what is left on the end of that stage instead of a fill it does not need. The RPM shown is the simulated drum speed. Real spin speeds (800 ~ 1200 RPM) cannot be shown meaningfully at 60 fps, so the final spin runs at 200 RPM. Anything above ~60 RPM already pins the laundry to the wall because the drum radius and gravity are scaled like a real 50 cm drum.
 
 ## How it works
 
@@ -114,7 +114,7 @@ MIT
 
 ## 주요 기능
 
-- 표준 면 코스(약 57분)가 알아서 돌아갑니다. 급수 → 세탁 → 배수 → 짧은 탈수 → 같은 배수와 짧은 탈수를 붙인 헹굼 두 번 → 10분 최종 탈수 → 종료, 그리고 다시 처음부터. LED에는 코스의 남은 시간이 뜹니다
+- 표준 면 코스(약 55분)가 알아서 돌아갑니다. 급수 → 세탁 → 배수 → 짧은 탈수 → 같은 배수와 짧은 탈수를 붙인 헹굼 두 번 → 10분 최종 탈수 → 종료, 그리고 다시 처음부터. LED에는 코스의 남은 시간이 뜹니다
 - 티셔츠, 양말, 수건, 바지를 최대 20개까지 넣을 수 있습니다. 종류마다 옷장에 실제로 있을 법한 디자인이 여러 개 있고, 색도 사람들이 실제로 입는 색입니다. 반복 무늬가 아니라 실제 옷의 부위를 그립니다. 칼라, 진동과 옆 솔기, 가슴 줄무늬와 보더 스트라이프, 색이 다른 소매, 소매 밑단, 허리 밴드와 밑단과 허리끈, 스티치와 사선 주머니, 수건의 짜임 테두리와 도비 보더, 양말의 골지 목과 발끝 보강과 뒤꿈치 패치. 검정 티셔츠나 차콜 수건처럼 어두운 옷에서는 솔기를 바탕보다 어둡게가 아니라 밝게 뽑아 실물처럼 보이게 합니다. 양말은 한 쌍씩 들어가고 한 쌍씩 나오며, 한 쌍을 하나로 셉니다
 - 수위, 회전에 따라 휘어 끝내 벽에 붙은 고리가 되는 수면, 거품, 그리고 수면 아래 물체에 걸리는 부력. 거품 슬라이더로 세제량을 정하며, 없음부터 드럼이 거품으로 가득 차는 것까지 볼 수 있습니다. 헹굼은 어느 경우에도 세탁 거품의 일부만 남습니다
 - 더미 아래에 깔린 빨래는 위 무게에 눌려 납작해지고, 탈수 때 벽에 붙은 빨래는 원심력에 얇게 눌립니다
@@ -146,16 +146,16 @@ MIT
 
 | 단계 | 길이 | 드럼 | 물 |
 |---|---|---|---|
-| 급수 | 3분 | 정지 | 35 %까지 채움 |
+| 급수 | 2.7분 | 정지 | 35 %까지 채움 |
 | 세탁 | 18분 | 45 RPM, 12초씩 방향을 바꾸고 사이에 3초 정지 | 35 % |
-| 배수 | 1.5분 | 정지 | 뺌 |
+| 배수 | 1.4분 | 정지 | 뺌 |
 | 탈수 | 2분 | 60 RPM으로 고르게 편 뒤 120 RPM, 관성으로 감속 | 없음 |
-| 급수 / 헹굼 / 배수 / 탈수 | 2.5 / 5 / 1.3 / 2분 | 위와 같음 | 30 % |
-| 급수 / 헹굼 / 배수 | 2.5 / 5 / 1.3분 | 위와 같음 | 30 % |
+| 급수 / 헹굼 / 배수 / 탈수 | 2.4 / 5 / 1.2 / 2분 | 위와 같음 | 30 % |
+| 급수 / 헹굼 / 배수 | 2.4 / 5 / 1.2분 | 위와 같음 | 30 % |
 | 최종 탈수 | 10분 | 60 → 120 → 200 RPM, 1분 관성 감속 | 없음 |
 | 종료 | 2분 | 정지 | 없음 |
 
-전부 합쳐 약 56분이고, 끝나면 코스를 다시 시작합니다. 급수와 배수는 시계가 아니라 물에서 시간을 읽습니다. 물이 단계를 거의 다 쓰도록 속도를 잡았고, 채우려는 수위에 이미 도달해 있는 드럼은 필요 없는 급수를 기다리는 대신 그 단계 끝에 남은 몇 초만 기다립니다. 화면에 뜨는 RPM은 시뮬레이션된 드럼 속도입니다. 실제 탈수 속도(800 ~ 1200 RPM)는 60 fps로 의미 있게 보여줄 수 없어서 최종 탈수를 200 RPM으로 돌립니다. 드럼 반지름과 중력을 실제 50 cm 드럼에 맞춰 잡았기 때문에, 약 60 RPM만 넘어도 빨래는 이미 벽에 붙습니다.
+전부 합쳐 약 55분이고, 끝나면 코스를 다시 시작합니다. 물만 옮기는 단계는 그 전송에 걸리는 시간에 몇 초를 더한 길이입니다. 둥근 숫자로 잡아 두고 기계가 멈춰 선 꼬리를 길게 남기지 않습니다. 급수와 배수는 시계가 아니라 물에서 시간을 읽습니다. 그래서 채우려는 수위에 이미 도달해 있는 드럼은 필요 없는 급수를 기다리는 대신 그 단계 끝에 남은 것만 기다립니다. 화면에 뜨는 RPM은 시뮬레이션된 드럼 속도입니다. 실제 탈수 속도(800 ~ 1200 RPM)는 60 fps로 의미 있게 보여줄 수 없어서 최종 탈수를 200 RPM으로 돌립니다. 드럼 반지름과 중력을 실제 50 cm 드럼에 맞춰 잡았기 때문에, 약 60 RPM만 넘어도 빨래는 이미 벽에 붙습니다.
 
 ## 동작 원리
 
