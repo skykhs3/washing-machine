@@ -562,7 +562,7 @@ export const CONFIG = {
   // drum at the top of the slider. `max` is the bubble count at that point.
   foam: {
     max: 320,
-    defaultLevel: 0.35,
+    defaultLevel: 0.5,
     capacityExp: 1.3,
     // How long a dose change takes to reach the foam. The head is the capacity
     // times the volume, so this is what paces the slider: the suds swell and
